@@ -23,13 +23,15 @@ export interface SpriteSheetConfig {
   walkFps: number;
 }
 
+export const DEFAULT_PLAYER_RENDER_SCALE = 2.4;
+
 export const DEFAULT_PLAYER_SPRITE_CONFIG: SpriteSheetConfig = {
   src: "/assets/isometric/player_base.png",
   fallbackUrl: "https://cdn.jsdelivr.net/gh/flareteam/flare-game@master/art_src/characters/alpha_demo/scathelocke.png",
   frameWidth: 128,
   frameHeight: 128,
   anchorX: 64,
-  anchorY: 96,
+  anchorY: 100, // Feet of the character in 128x128 frame
   idleColumns: [0, 1, 2, 3],
   walkColumns: [4, 5, 6, 7, 8, 9, 10, 11],
   idleFps: 6,
@@ -41,8 +43,8 @@ export const MAGE_PLAYER_SPRITE_CONFIG: SpriteSheetConfig = {
   fallbackUrl: "https://cdn.jsdelivr.net/gh/flareteam/flare-game@master/art_src/characters/alpha_demo/necromancer.png",
   frameWidth: 128,
   frameHeight: 128,
-  anchorX: 64,
-  anchorY: 96,
+  anchorX: 58,
+  anchorY: 112,
   idleColumns: [0, 1, 2, 3],
   walkColumns: [4, 5, 6, 7, 8, 9, 10, 11],
   idleFps: 6,
@@ -182,7 +184,7 @@ export class CharacterSpriteAnimator {
     ctx: CanvasRenderingContext2D,
     screenX: number,
     screenY: number,
-    scale: number = 1.0
+    scale: number = DEFAULT_PLAYER_RENDER_SCALE
   ): boolean {
     if (!this.image || !this.isLoaded) return false;
 

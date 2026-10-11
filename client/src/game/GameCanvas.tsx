@@ -17,8 +17,12 @@ import {
   CharacterSpriteAnimator,
   DEFAULT_PLAYER_SPRITE_CONFIG,
   MAGE_PLAYER_SPRITE_CONFIG,
+  DEFAULT_PLAYER_RENDER_SCALE,
   calculateIsometricDirectionRow
 } from "./spriteAnimator";
+
+// Global Camera Zoom factor for ARPG perspective (1.5x - 2.0x)
+export const CAMERA_ZOOM = 1.6;
 
 interface FloatingText {
   id: number;
@@ -305,15 +309,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         shakeOffsetY = (Math.random() - 0.5) * curIntensity * 2;
       }
 
-      // Center of screen transform
+      // Center of screen transform with Camera Zoom
       const screenCenterX = width / 2;
       const screenCenterY = height / 2;
 
+      // Helper to project isometric world light coordinates into screen space under camera zoom
+      const toScreenLight = (isoX: number, isoY: number, baseRadius: number): LightSource => ({
+        screenX: screenCenterX + shakeOffsetX + (isoX - cameraIsoX) * CAMERA_ZOOM,
+        screenY: screenCenterY + shakeOffsetY + (isoY - cameraIsoY) * CAMERA_ZOOM,
+        radius: baseRadius * CAMERA_ZOOM
+      });
+
       ctx.save();
-      ctx.translate(
-        screenCenterX - cameraIsoX + shakeOffsetX,
-        screenCenterY - cameraIsoY + shakeOffsetY
-      );
+      ctx.translate(screenCenterX + shakeOffsetX, screenCenterY + shakeOffsetY);
+      ctx.scale(CAMERA_ZOOM, CAMERA_ZOOM);
+      ctx.translate(-cameraIsoX, -cameraIsoY);
 
       // ================= 3. ISOMETRIC RHOMBUS TILEMAP =================
       drawIsometricTilemap(ctx, cameraIsoX, cameraIsoY, width, height, zoneType);
@@ -388,11 +398,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         });
         // Register Waypoint Emerald Light
-        secondaryLights.push({
-          screenX: screenCenterX - cameraIsoX + wpIso.x,
-          screenY: screenCenterY - cameraIsoY + wpIso.y,
-          radius: 190 + Math.sin(now / 150) * 8
-        });
+        secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 190 + Math.sin(now / 150) * 8));
 
         // 2. Medieval Campfire situated at (480, 480)
         const fireIso = worldToIso(480, 480);
@@ -404,11 +410,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         });
         // Register Campfire Radiant Orange Light
-        secondaryLights.push({
-          screenX: screenCenterX - cameraIsoX + fireIso.x,
-          screenY: screenCenterY - cameraIsoY + fireIso.y,
-          radius: 250 + Math.sin(now / 95) * 12
-        });
+        secondaryLights.push(toScreenLight(fireIso.x, fireIso.y, 250 + Math.sin(now / 95) * 12));
 
         // 3. Stash Chest situated at (320, 260)
         const stashIso = worldToIso(320, 260);
@@ -443,11 +445,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.restore();
           }
         });
-        secondaryLights.push({
-          screenX: screenCenterX - cameraIsoX + portalIso.x,
-          screenY: screenCenterY - cameraIsoY + portalIso.y,
-          radius: 170 + Math.sin(now / 120) * 8
-        });
+        secondaryLights.push(toScreenLight(portalIso.x, portalIso.y, 170 + Math.sin(now / 120) * 8));
 
         // Dynamic Portals from Server
         if (room && room.state && room.state.portals) {
@@ -465,11 +463,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                 c.restore();
               }
             });
-            secondaryLights.push({
-              screenX: screenCenterX - cameraIsoX + pIso.x,
-              screenY: screenCenterY - cameraIsoY + pIso.y,
-              radius: 150
-            });
+            secondaryLights.push(toScreenLight(pIso.x, pIso.y, 150));
           });
         }
       }
@@ -491,11 +485,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               c.restore();
             }
           });
-          secondaryLights.push({
-            screenX: screenCenterX - cameraIsoX + retIso.x,
-            screenY: screenCenterY - cameraIsoY + retIso.y,
-            radius: 180
-          });
+          secondaryLights.push(toScreenLight(retIso.x, retIso.y, 180));
         }
 
         // Monsters with Fog of War Check
@@ -609,7 +599,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               c.strokeStyle = "rgba(241, 196, 15, 0.85)";
               c.lineWidth = 1.8;
               c.beginPath();
-              c.ellipse(iso.x, iso.y + 4, ringPulse * 1.5, ringPulse * 0.75, 0, 0, Math.PI * 2);
+              c.ellipse(iso.x, iso.y, ringPulse * 1.5, ringPulse * 0.75, 0, 0, Math.PI * 2);
               c.stroke();
               c.restore();
             }
@@ -617,7 +607,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             // Render Animated Walk / Idle Sprite Cycle
             let rendered = false;
             if (isLocal) {
-              rendered = localAnimatorRef.current.render(c, iso.x, iso.y, 0.95);
+              rendered = localAnimatorRef.current.render(c, iso.x, iso.y, DEFAULT_PLAYER_RENDER_SCALE);
             } else {
               let rAnim = remoteAnimatorsRef.current.get(p.id);
               if (!rAnim) {
@@ -632,7 +622,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               const rIsoDy = (rDx + rDy) * 0.5;
               const rDir = calculateIsometricDirectionRow(rIsoDx, rIsoDy);
               rAnim.update(dt, rMoving, rDir);
-              rendered = rAnim.render(c, iso.x, iso.y, 0.95);
+              rendered = rAnim.render(c, iso.x, iso.y, DEFAULT_PLAYER_RENDER_SCALE);
             }
 
             // Fallback during texture loading
@@ -647,11 +637,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.shadowColor = "#000000";
             c.shadowBlur = 5;
             c.fillStyle = isLocal ? "#f1c40f" : "#ecf0f1";
-            c.fillText(p.name || "Exile", iso.x, iso.y - 125);
+            c.fillText(p.name || "Exile", iso.x, iso.y - 145);
 
             c.font = "9px 'Cinzel', serif";
             c.fillStyle = isLocal ? "#d4ac0d" : "#95a5a6";
-            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Warrior"}`, iso.x, iso.y - 113);
+            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Warrior"}`, iso.x, iso.y - 132);
             c.restore();
           }
         });
@@ -788,9 +778,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const cameraIsoX = playerIso.x;
     const cameraIsoY = playerIso.y;
 
-    // Convert Screen Click to Isometric World Coordinates
-    const screenRelX = clickX - canvas.width / 2 + cameraIsoX;
-    const screenRelY = clickY - canvas.height / 2 + cameraIsoY;
+    // Convert Screen Click to Isometric World Coordinates (accounting for Camera Zoom)
+    const screenRelX = (clickX - canvas.width / 2) / CAMERA_ZOOM + cameraIsoX;
+    const screenRelY = (clickY - canvas.height / 2) / CAMERA_ZOOM + cameraIsoY;
     const worldPos = isoToWorld(screenRelX, screenRelY);
     const worldX = worldPos.x;
     const worldY = worldPos.y;

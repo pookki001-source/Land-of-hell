@@ -112,7 +112,7 @@ export const ISOMETRIC_ATLAS: Record<string, SpriteAtlasEntry> = {
     src: "/assets/isometric/waypoint.png",
     fallbackUrl: "https://cdn.jsdelivr.net/gh/flareteam/flare-game@master/mods/fantasycore/images/npcs/return_obelisk1.png",
     frames: {
-      default: { x: 234, y: 192, w: 117, h: 189, anchorX: 58, anchorY: 163 }
+      default: { x: 0, y: 0, w: 117, h: 192, anchorX: 58, anchorY: 175 }
     }
   },
   portal: {
