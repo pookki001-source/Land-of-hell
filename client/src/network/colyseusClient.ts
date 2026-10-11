@@ -1,10 +1,12 @@
 import { Client, Room } from "colyseus.js";
 
+const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
-  (window.location.protocol === "https:"
-    ? `wss://${window.location.hostname}:2567`
-    : `ws://${window.location.hostname || "localhost"}:2567`);
+  (isLocal
+    ? `ws://${window.location.hostname}:2567`
+    : `wss://land-of-hell.onrender.com`);
 
 export const colyseus = new Client(SERVER_URL);
 
