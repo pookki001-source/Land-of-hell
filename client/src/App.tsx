@@ -17,6 +17,7 @@ import {
   getStartNodeForClass
 } from "./components/PassiveTreeModal";
 import { GemSocketModal, SocketsSetup } from "./components/GemSocketModal";
+import { CharacterSheetModal } from "./components/CharacterSheetModal";
 import { EquippedGear, GameItem, generateStarterGear } from "./data/itemData";
 import { sounds } from "./utils/soundEffects";
 import {
@@ -46,6 +47,7 @@ export const App: React.FC = () => {
   const [isInventoryOpen, setIsInventoryOpen] = useState<boolean>(false);
   const [isPassiveTreeOpen, setIsPassiveTreeOpen] = useState<boolean>(false);
   const [isSocketsModalOpen, setIsSocketsModalOpen] = useState<boolean>(false);
+  const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState<boolean>(false);
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
@@ -55,7 +57,7 @@ export const App: React.FC = () => {
 
   const prevLevelRef = useRef<number>(1);
 
-  // Keyboard shortcuts: 'I'/'B' for Inventory, 'P' for Passive Tree, 'G' for Gem Sockets
+  // Keyboard shortcuts: 'I'/'B' for Inventory, 'P' for Passive Tree, 'G' for Sockets, 'C' for Character Sheet
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -72,6 +74,11 @@ export const App: React.FC = () => {
       if (e.key === "g" || e.key === "G") {
         if (activeCharacter) {
           setIsSocketsModalOpen((prev) => !prev);
+        }
+      }
+      if (e.key === "c" || e.key === "C") {
+        if (activeCharacter) {
+          setIsCharacterSheetOpen((prev) => !prev);
         }
       }
     };
@@ -284,6 +291,46 @@ export const App: React.FC = () => {
     showPopupNotification(`Rerolled ${currency.toUpperCase()} sockets!`);
   };
 
+  const handleSelectAscendancy = (ascendancyId: string) => {
+    if (!activeCharacter) return;
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        ascendancyClass: ascendancyId,
+        ascendancyNodes: []
+      };
+    });
+    if (ascendancyId) {
+      showPopupNotification(`⚡ Ascended to ${ascendancyId.toUpperCase()}! New Ascendancy notables unlocked!`);
+    } else {
+      showPopupNotification("Ascendancy reset! Choose a new path at the Altar.");
+    }
+  };
+
+  const handleToggleAscendancyNode = (nodeId: string) => {
+    if (!activeCharacter) return;
+    const currentNodes = activeCharacter.ascendancyNodes || [];
+    const isAllocated = currentNodes.includes(nodeId);
+    let newNodes: string[];
+    if (isAllocated) {
+      newNodes = currentNodes.filter((n) => n !== nodeId);
+    } else {
+      if (currentNodes.length >= 4) {
+        showPopupNotification("Maximum 4 Ascendancy Notables reached!");
+        return;
+      }
+      newNodes = [...currentNodes, nodeId];
+    }
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        ascendancyNodes: newNodes
+      };
+    });
+  };
+
   const showPopupNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => {
@@ -381,6 +428,7 @@ export const App: React.FC = () => {
             onToggleInventory={() => setIsInventoryOpen((prev) => !prev)}
             onTogglePassiveTree={() => setIsPassiveTreeOpen((prev) => !prev)}
             onToggleSocketsModal={() => setIsSocketsModalOpen((prev) => !prev)}
+            onToggleCharacterSheet={() => setIsCharacterSheetOpen((prev) => !prev)}
           />
 
           {/* POE TETRIS INVENTORY & EQUIPMENT MODAL */}
@@ -434,6 +482,15 @@ export const App: React.FC = () => {
             chaosOrbs={activeCharacter.chaosOrbs || 0}
             wisdomScrolls={activeCharacter.wisdomScrolls || 0}
             onCraftCurrency={handleCraftCurrency}
+          />
+
+          {/* POE CHARACTER SHEET & ASCENDANCY MODAL */}
+          <CharacterSheetModal
+            isOpen={isCharacterSheetOpen}
+            onClose={() => setIsCharacterSheetOpen(false)}
+            player={activeCharacter}
+            onSelectAscendancy={handleSelectAscendancy}
+            onToggleAscendancyNode={handleToggleAscendancyNode}
           />
         </>
       )}

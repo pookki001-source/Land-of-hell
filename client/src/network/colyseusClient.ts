@@ -42,6 +42,8 @@ export interface LocalPlayerData {
   allocatedPassives?: string[];
   socketsSetup?: SocketsSetup;
   inventoryGems?: string[];
+  ascendancyClass?: string;
+  ascendancyNodes?: string[];
 }
 
 const starter = generateStarterGear("Duelist");

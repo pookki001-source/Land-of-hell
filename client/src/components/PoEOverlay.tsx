@@ -26,6 +26,7 @@ interface PoEOverlayProps {
   onToggleInventory?: () => void;
   onTogglePassiveTree?: () => void;
   onToggleSocketsModal?: () => void;
+  onToggleCharacterSheet?: () => void;
 }
 
 export const PoEOverlay: React.FC<PoEOverlayProps> = ({
@@ -39,7 +40,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
   onSwitchCharacter,
   onToggleInventory,
   onTogglePassiveTree,
-  onToggleSocketsModal
+  onToggleSocketsModal,
+  onToggleCharacterSheet
 }) => {
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -208,6 +210,26 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               <Compass size={14} /> Return to Town
             </button>
           )}
+
+          <button
+            onClick={onToggleCharacterSheet}
+            style={{
+              backgroundColor: "#201c15",
+              border: "1px solid #c39b53",
+              color: "#fae5b9",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 0 10px rgba(195, 155, 83, 0.25)"
+            }}
+          >
+            📜 Stats (C)
+          </button>
 
           <button
             onClick={onTogglePassiveTree}
