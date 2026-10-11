@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Metamorphous&family=MedievalSharp&display=swap');
+
+:root {
+  --poe-bg: #0c0b0b;
+  --poe-panel: #161413;
+  --poe-panel-border: #3d352a;
+  --poe-gold: #c9b99a;
+  --poe-gold-bright: #f0dfb6;
+  --poe-gold-dim: #7f745e;
+  --poe-red: #af1414;
+  --poe-blue: #1c52b5;
+  --poe-rare: #f4d03f;
+  --poe-unique: #af601a;
+  --poe-magic: #5dade2;
+  --poe-currency: #aa9e82;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--poe-bg);
+  color: var(--poe-gold);
+  font-family: 'Cinzel', serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111;
+}
+::-webkit-scrollbar-thumb {
+  background: #332d24;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #554838;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px rgba(240, 223, 182, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(240, 223, 182, 0.85); }
+  100% { box-shadow: 0 0 5px rgba(240, 223, 182, 0.4); }
+}
+
+@keyframes autoPulse {
+  0% { box-shadow: 0 0 6px #e74c3c; border-color: #e74c3c; }
+  50% { box-shadow: 0 0 20px #ff5252, 0 0 35px #ff1744; border-color: #ff5252; }
+  100% { box-shadow: 0 0 6px #e74c3c; border-color: #e74c3c; }
+}
+
+@keyframes liquidFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
