@@ -23,7 +23,7 @@ export interface SpriteSheetConfig {
   walkFps: number;
 }
 
-export const DEFAULT_PLAYER_RENDER_SCALE = 2.4;
+export const DEFAULT_PLAYER_RENDER_SCALE = 1.35;
 
 export const DEFAULT_PLAYER_SPRITE_CONFIG: SpriteSheetConfig = {
   src: "/assets/isometric/player_base.png",

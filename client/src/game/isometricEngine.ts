@@ -110,38 +110,41 @@ export const ISOMETRIC_ATLAS: Record<string, SpriteAtlasEntry> = {
   waypoint: {
     key: "waypoint",
     src: "/assets/isometric/waypoint.png",
-    fallbackUrl: "https://cdn.jsdelivr.net/gh/flareteam/flare-game@master/mods/fantasycore/images/npcs/return_obelisk1.png",
+    fallbackUrl: "/assets/isometric/waypoint.png",
     frames: {
-      default: { x: 0, y: 0, w: 117, h: 192, anchorX: 58, anchorY: 175 }
+      default: { x: 0, y: 0, w: 1024, h: 1024, anchorX: 506, anchorY: 920 }
     }
   },
   portal: {
     key: "portal",
     src: "/assets/isometric/portal.png",
-    fallbackUrl: "https://cdn.jsdelivr.net/gh/flareteam/flare-game@master/art_src/tilesets/teleport/out/teleport_128.png",
+    fallbackUrl: "/assets/isometric/portal.png",
     frames: {
-      default: { x: 0, y: 0, w: 128, h: 320, anchorX: 64, anchorY: 275 }
+      default: { x: 0, y: 0, w: 1024, h: 1024, anchorX: 506, anchorY: 920 }
     }
   },
   chest: {
     key: "chest",
     src: "/assets/isometric/chest.png",
-    fallbackUrl: "https://opengameart.org/sites/default/files/hjm-small_wooden_chest_iron-preview.png",
+    fallbackUrl: "/assets/isometric/chest.png",
     frames: {
-      default: { x: 40, y: 30, w: 220, h: 190, anchorX: 110, anchorY: 160 }
+      default: { x: 0, y: 0, w: 1024, h: 1024, anchorX: 510, anchorY: 960 }
     }
   },
   campfire: {
     key: "campfire",
     src: "/assets/isometric/campfire.png",
-    fallbackUrl: "https://opengameart.org/sites/default/files/NewerCampFire_2.png",
+    fallbackUrl: "/assets/isometric/campfire.png",
     frames: {
-      // 5 animated frames of 64x64
-      frame_0: { x: 0, y: 0, w: 64, h: 64, anchorX: 32, anchorY: 54 },
-      frame_1: { x: 64, y: 0, w: 64, h: 64, anchorX: 32, anchorY: 54 },
-      frame_2: { x: 128, y: 0, w: 64, h: 64, anchorX: 32, anchorY: 54 },
-      frame_3: { x: 192, y: 0, w: 64, h: 64, anchorX: 32, anchorY: 54 },
-      frame_4: { x: 256, y: 0, w: 64, h: 64, anchorX: 32, anchorY: 54 }
+      default: { x: 0, y: 0, w: 1024, h: 1024, anchorX: 504, anchorY: 620 }
+    }
+  },
+  stone_tiles: {
+    key: "stone_tiles",
+    src: "/assets/isometric/stone_tiles.png",
+    fallbackUrl: "/assets/isometric/stone_tiles.png",
+    frames: {
+      default: { x: 0, y: 0, w: 1024, h: 1024, anchorX: 0, anchorY: 0 }
     }
   }
 };
@@ -268,13 +271,12 @@ export function drawIsometricTilemap(
   const hw = TILE_WIDTH / 2;
   const hh = TILE_HEIGHT / 2;
 
-  // Determine grid tile range visible around camera
-  // In isometric projection:
   const centerWorld = isoToWorld(cameraIsoX, cameraIsoY);
   const centerGx = Math.round(centerWorld.x / WORLD_SCALE);
   const centerGy = Math.round(centerWorld.y / WORLD_SCALE);
 
-  const radiusTiles = 14;
+  const radiusTiles = 16;
+  const stoneImg = isoSpriteRenderer.getImage("stone_tiles");
 
   for (let gy = centerGy - radiusTiles; gy <= centerGy + radiusTiles; gy++) {
     for (let gx = centerGx - radiusTiles; gx <= centerGx + radiusTiles; gx++) {
@@ -284,7 +286,6 @@ export function drawIsometricTilemap(
       const screenX = tileIsoX;
       const screenY = tileIsoY;
 
-      // Draw Rhombus (สี่เหลี่ยมขนมเปียกปูน)
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(screenX, screenY - hh); // Top
@@ -293,43 +294,47 @@ export function drawIsometricTilemap(
       ctx.lineTo(screenX - hw, screenY); // Left
       ctx.closePath();
 
-      // Stone slab color variations
       const isAlt = (gx + gy) % 2 === 0;
-      const seed = Math.sin(gx * 19.123 + gy * 47.987) * 98765.4321;
-      const variation = Math.floor((Math.abs(seed) % 1) * 3);
 
-      if (zoneType === "town") {
-        // Lioneye's Watch: Weathered Granite Flagstone Rhombus
-        let fill = isAlt ? "#191614" : "#211d19";
-        if (variation === 1) fill = "#28221d";
-        if (variation === 2) fill = "#151210";
+      if (stoneImg) {
+        ctx.save();
+        ctx.clip();
 
-        ctx.fillStyle = fill;
+        // Sample textured cobblestone across the grid seamlessly
+        const sx = (Math.abs(gx * 149 + gy * 73) % 7) * 128;
+        const sy = (Math.abs(gy * 193 + gx * 89) % 7) * 128;
+
+        ctx.drawImage(stoneImg, sx, sy, 128, 128, screenX - hw, screenY - hh, TILE_WIDTH, TILE_HEIGHT);
+
+        // Dark fantasy tone tinting
+        if (zoneType === "town") {
+          ctx.fillStyle = isAlt ? "rgba(12, 10, 8, 0.42)" : "rgba(22, 18, 15, 0.32)";
+        } else {
+          ctx.fillStyle = isAlt ? "rgba(5, 5, 8, 0.68)" : "rgba(14, 12, 18, 0.58)";
+        }
         ctx.fill();
+        ctx.restore();
 
-        // Dark grout seam
-        ctx.strokeStyle = "#0b0908";
-        ctx.lineWidth = 1.2;
+        // Deep dark recessed grout seam
+        ctx.strokeStyle = zoneType === "town" ? "#080605" : "#040305";
+        ctx.lineWidth = 1.3;
         ctx.stroke();
 
-        // Top-edge light bevel highlight
+        // Subtle stone top-edge bevel highlight
         ctx.beginPath();
         ctx.moveTo(screenX - hw, screenY);
         ctx.lineTo(screenX, screenY - hh);
         ctx.lineTo(screenX + hw, screenY);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.045)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.055)";
         ctx.lineWidth = 1.0;
         ctx.stroke();
       } else {
-        // The Strand / Combat Map: Dark cracked crypt pavers
-        let fill = isAlt ? "#121013" : "#171418";
-        if (variation === 1) fill = "#1b171c";
-        if (variation === 2) fill = "#0f0e10";
-
+        // Fallback fill if texture is loading
+        let fill = isAlt ? "#191614" : "#211d19";
+        if (zoneType !== "town") fill = isAlt ? "#121013" : "#171418";
         ctx.fillStyle = fill;
         ctx.fill();
-
-        ctx.strokeStyle = "#070608";
+        ctx.strokeStyle = "#0b0908";
         ctx.lineWidth = 1.2;
         ctx.stroke();
       }
@@ -386,13 +391,15 @@ export function applyDiablo2PitchBlackLighting(
   playerScreenX: number,
   playerScreenY: number,
   now: number,
-  secondaryLights: LightSource[] = []
+  secondaryLights: LightSource[] = [],
+  zoneType: "town" | "map" = "town",
+  dpr: number = 1
 ) {
   const mask = getLightingCanvas(width, height);
   const mctx = mask.getContext("2d");
   if (!mctx) return;
 
-  // 1. Fill entire screen with 100% PITCH BLACK (#000000)
+  // 1. Fill entire screen with dark fantasy shadow overlay
   mctx.globalCompositeOperation = "source-over";
   mctx.fillStyle = "#000000";
   mctx.fillRect(0, 0, width, height);
@@ -405,7 +412,7 @@ export function applyDiablo2PitchBlackLighting(
     Math.sin(now / 115) * 8 +
     Math.cos(now / 68) * 5 +
     Math.sin(now / 24) * 3;
-  const playerRadius = 380 + torchFlicker;
+  const playerRadius = (zoneType === "town" ? 440 : 380) + torchFlicker;
 
   const playerLightGrad = mctx.createRadialGradient(
     playerScreenX,
@@ -447,10 +454,11 @@ export function applyDiablo2PitchBlackLighting(
     mctx.fill();
   }
 
-  // 3. Composite Pitch Black Mask over the Main Screen
+  // 3. Composite Mask over the Main Screen
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to screen space
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Respect high-DPI scaling
   ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = zoneType === "town" ? 0.82 : 1.0;
   ctx.drawImage(mask, 0, 0);
 
   // 4. Subtle Warm Amber Torchlight Ambient Tint inside light cone
@@ -460,12 +468,13 @@ export function applyDiablo2PitchBlackLighting(
     30,
     playerScreenX,
     playerScreenY,
-    playerRadius * 0.8
+    playerRadius * 0.85
   );
-  warmGlow.addColorStop(0, "rgba(255, 145, 30, 0.07)");
-  warmGlow.addColorStop(0.5, "rgba(230, 100, 20, 0.035)");
+  warmGlow.addColorStop(0, "rgba(255, 145, 30, 0.08)");
+  warmGlow.addColorStop(0.5, "rgba(230, 100, 20, 0.04)");
   warmGlow.addColorStop(1, "transparent");
   ctx.fillStyle = warmGlow;
+  ctx.globalAlpha = 1.0;
   ctx.fillRect(0, 0, width, height);
 
   ctx.restore();

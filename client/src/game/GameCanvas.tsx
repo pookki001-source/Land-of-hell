@@ -222,16 +222,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     let animationFrameId: number;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
     };
     resize();
     window.addEventListener("resize", resize);
 
     const render = () => {
-      const width = canvas.width;
-      const height = canvas.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = window.innerWidth;
+      const height = window.innerHeight;
       const now = performance.now();
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
       // Clear Screen with 100% PITCH BLACK (#000000)
       ctx.fillStyle = "#000000";
@@ -376,54 +385,66 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         depthEntities.push({
           depth: wpIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "waypoint", "default", wpIso.x, wpIso.y, 0.88);
+            isoSpriteRenderer.drawSprite(c, "waypoint", "default", wpIso.x, wpIso.y, 0.22);
 
             // Ground Rune Ring
-            const pulse = 22 + Math.sin(now / 300) * 3;
+            const pulse = 24 + Math.sin(now / 350) * 3;
             c.save();
-            c.strokeStyle = "rgba(46, 204, 113, 0.75)";
+            c.strokeStyle = "rgba(46, 204, 113, 0.55)";
             c.lineWidth = 2;
             c.beginPath();
             c.ellipse(wpIso.x, wpIso.y + 4, pulse * 1.8, pulse * 0.9, 0, 0, Math.PI * 2);
             c.stroke();
 
             // Label
-            c.fillStyle = "#d4ac0d";
+            c.fillStyle = "#e5c158";
             c.font = "bold 11px 'Cinzel', serif";
             c.textAlign = "center";
             c.shadowColor = "#000000";
-            c.shadowBlur = 6;
-            c.fillText("LIONEYE'S WAYPOINT", wpIso.x, wpIso.y + 30);
+            c.shadowBlur = 8;
+            c.fillText("LIONEYE'S WAYPOINT", wpIso.x, wpIso.y + 26);
             c.restore();
           }
         });
         // Register Waypoint Emerald Light
-        secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 190 + Math.sin(now / 150) * 8));
+        secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 220 + Math.sin(now / 150) * 8));
 
         // 2. Medieval Campfire situated at (480, 480)
         const fireIso = worldToIso(480, 480);
-        const fireFrame = "frame_" + (Math.floor(now / 140) % 5);
         depthEntities.push({
           depth: fireIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "campfire", fireFrame, fireIso.x, fireIso.y, 1.25);
+            isoSpriteRenderer.drawSprite(c, "campfire", "default", fireIso.x, fireIso.y, 0.17);
+
+            // Animated rising embers and flame glow
+            c.save();
+            const glowR = 32 + Math.sin(now / 90) * 4;
+            const fireGlow = c.createRadialGradient(fireIso.x, fireIso.y - 12, 0, fireIso.x, fireIso.y - 12, glowR);
+            fireGlow.addColorStop(0, "rgba(255, 140, 20, 0.35)");
+            fireGlow.addColorStop(0.7, "rgba(230, 80, 10, 0.12)");
+            fireGlow.addColorStop(1, "transparent");
+            c.fillStyle = fireGlow;
+            c.beginPath();
+            c.arc(fireIso.x, fireIso.y - 12, glowR, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
           }
         });
         // Register Campfire Radiant Orange Light
-        secondaryLights.push(toScreenLight(fireIso.x, fireIso.y, 250 + Math.sin(now / 95) * 12));
+        secondaryLights.push(toScreenLight(fireIso.x, fireIso.y, 270 + Math.sin(now / 95) * 14));
 
         // 3. Stash Chest situated at (320, 260)
         const stashIso = worldToIso(320, 260);
         depthEntities.push({
           depth: stashIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "chest", "default", stashIso.x, stashIso.y, 0.52);
+            isoSpriteRenderer.drawSprite(c, "chest", "default", stashIso.x, stashIso.y, 0.14);
             c.save();
             c.fillStyle = "#e0cfb3";
             c.font = "bold 10px 'Cinzel', serif";
             c.textAlign = "center";
             c.shadowColor = "#000000";
-            c.shadowBlur = 5;
+            c.shadowBlur = 6;
             c.fillText("STASH", stashIso.x, stashIso.y + 22);
             c.restore();
           }
@@ -434,18 +455,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         depthEntities.push({
           depth: portalIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "portal", "default", portalIso.x, portalIso.y, 0.65);
+            isoSpriteRenderer.drawSprite(c, "portal", "default", portalIso.x, portalIso.y, 0.22);
             c.save();
-            c.fillStyle = "#bb8fce";
+            c.fillStyle = "#c39bd3";
             c.font = "bold 11px 'Cinzel', serif";
             c.textAlign = "center";
             c.shadowColor = "#000000";
-            c.shadowBlur = 6;
-            c.fillText("THE STRAND (ACT 1)", portalIso.x, portalIso.y + 24);
+            c.shadowBlur = 8;
+            c.fillText("THE STRAND (ACT 1)", portalIso.x, portalIso.y + 26);
             c.restore();
           }
         });
-        secondaryLights.push(toScreenLight(portalIso.x, portalIso.y, 170 + Math.sin(now / 120) * 8));
+        secondaryLights.push(toScreenLight(portalIso.x, portalIso.y, 220 + Math.sin(now / 120) * 10));
 
         // Dynamic Portals from Server
         if (room && room.state && room.state.portals) {
@@ -454,7 +475,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             depthEntities.push({
               depth: pIso.y,
               render: (c) => {
-                isoSpriteRenderer.drawSprite(c, "portal", "default", pIso.x, pIso.y, 0.6);
+                isoSpriteRenderer.drawSprite(c, "portal", "default", pIso.x, pIso.y, 0.20);
                 c.save();
                 c.fillStyle = "#9b59b6";
                 c.font = "bold 10px 'Cinzel', serif";
@@ -463,7 +484,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                 c.restore();
               }
             });
-            secondaryLights.push(toScreenLight(pIso.x, pIso.y, 150));
+            secondaryLights.push(toScreenLight(pIso.x, pIso.y, 180));
           });
         }
       }
@@ -476,7 +497,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           depthEntities.push({
             depth: retIso.y,
             render: (c) => {
-              isoSpriteRenderer.drawSprite(c, "portal", "default", retIso.x, retIso.y, 0.65);
+              isoSpriteRenderer.drawSprite(c, "portal", "default", retIso.x, retIso.y, 0.22);
               c.save();
               c.fillStyle = "#3498db";
               c.font = "bold 11px 'Cinzel', serif";
@@ -594,12 +615,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           render: (c) => {
             // Local Selection Ring beneath feet
             if (isLocal) {
-              const ringPulse = 20 + Math.sin(now / 320) * 2;
+              const ringPulse = 18 + Math.sin(now / 350) * 1.5;
               c.save();
-              c.strokeStyle = "rgba(241, 196, 15, 0.85)";
-              c.lineWidth = 1.8;
+              c.strokeStyle = "rgba(212, 172, 13, 0.45)";
+              c.lineWidth = 1.5;
               c.beginPath();
-              c.ellipse(iso.x, iso.y, ringPulse * 1.5, ringPulse * 0.75, 0, 0, Math.PI * 2);
+              c.ellipse(iso.x, iso.y, ringPulse * 1.4, ringPulse * 0.7, 0, 0, Math.PI * 2);
               c.stroke();
               c.restore();
             }
@@ -637,11 +658,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.shadowColor = "#000000";
             c.shadowBlur = 5;
             c.fillStyle = isLocal ? "#f1c40f" : "#ecf0f1";
-            c.fillText(p.name || "Exile", iso.x, iso.y - 145);
+            c.fillText(p.name || "Exile", iso.x, iso.y - 88);
 
             c.font = "9px 'Cinzel', serif";
             c.fillStyle = isLocal ? "#d4ac0d" : "#95a5a6";
-            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Warrior"}`, iso.x, iso.y - 132);
+            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Warrior"}`, iso.x, iso.y - 75);
             c.restore();
           }
         });
@@ -740,8 +761,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         playerScreenX,
         playerScreenY,
         now,
-        secondaryLights
+        secondaryLights,
+        zoneType,
+        dpr
       );
+
+      ctx.restore(); // Restore high-DPI scaling
 
       animationFrameId = requestAnimationFrame(render);
     };
@@ -779,8 +804,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const cameraIsoY = playerIso.y;
 
     // Convert Screen Click to Isometric World Coordinates (accounting for Camera Zoom)
-    const screenRelX = (clickX - canvas.width / 2) / CAMERA_ZOOM + cameraIsoX;
-    const screenRelY = (clickY - canvas.height / 2) / CAMERA_ZOOM + cameraIsoY;
+    const screenRelX = (clickX - rect.width / 2) / CAMERA_ZOOM + cameraIsoX;
+    const screenRelY = (clickY - rect.height / 2) / CAMERA_ZOOM + cameraIsoY;
     const worldPos = isoToWorld(screenRelX, screenRelY);
     const worldX = worldPos.x;
     const worldY = worldPos.y;
