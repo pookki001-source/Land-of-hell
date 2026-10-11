@@ -565,40 +565,20 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
         }}
       >
         {/* RED LIFE GLOBE (Left) */}
-        <div style={{ position: "relative", width: "135px", height: "135px", marginBottom: "8px", pointerEvents: "auto" }}>
-          {/* Gothic Chained Maiden Statue Frame */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: "-15px",
-              left: "-30px",
-              width: "195px",
-              height: "200px",
-              backgroundImage: "url(/assets/isometric/poe_globe_statue.jpg)",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              borderRadius: "16px",
-              opacity: 0.94,
-              pointerEvents: "none",
-              zIndex: 3,
-              mixBlendMode: "screen",
-              filter: "drop-shadow(0 4px 18px rgba(0,0,0,0.95))"
-            }}
-          />
-          <div
-            style={{
-              width: "125px",
-              height: "125px",
-              borderRadius: "50%",
-              backgroundColor: "#1a0808",
-              border: "3px solid #6b1d1d",
-              boxShadow: "0 0 25px rgba(0,0,0,0.95), inset 0 0 25px #000000, 0 0 15px rgba(192, 57, 43, 0.4)",
-              position: "absolute",
-              bottom: "5px",
-              left: "5px",
-              overflow: "hidden"
-            }}
-          >
+        <div
+          style={{
+            width: "125px",
+            height: "125px",
+            borderRadius: "50%",
+            backgroundColor: "#1a0808",
+            border: "4px solid #4a1515",
+            boxShadow: "0 0 15px rgba(0,0,0,0.9), inset 0 0 20px #000000",
+            position: "relative",
+            overflow: "hidden",
+            pointerEvents: "auto",
+            marginBottom: "10px"
+          }}
+        >
           {/* Liquid level */}
           <div
             style={{
@@ -649,7 +629,6 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               </div>
             )}
           </div>
-        </div>
         </div>
 
         {/* CENTER CONTROLS: FLASKS, SKILLS & AUTO FARM BUTTON */}
