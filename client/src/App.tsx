@@ -16,6 +16,7 @@ import {
   calculatePassiveTotals,
   getStartNodeForClass
 } from "./components/PassiveTreeModal";
+import { GemSocketModal, SocketsSetup } from "./components/GemSocketModal";
 import { EquippedGear, GameItem, generateStarterGear } from "./data/itemData";
 import { sounds } from "./utils/soundEffects";
 import {
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
   const [activeCharacter, setActiveCharacter] = useState<LocalPlayerData | null>(null);
   const [isInventoryOpen, setIsInventoryOpen] = useState<boolean>(false);
   const [isPassiveTreeOpen, setIsPassiveTreeOpen] = useState<boolean>(false);
+  const [isSocketsModalOpen, setIsSocketsModalOpen] = useState<boolean>(false);
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
@@ -53,7 +55,7 @@ export const App: React.FC = () => {
 
   const prevLevelRef = useRef<number>(1);
 
-  // Keyboard shortcuts: 'I'/'B' for Inventory, 'P' for Passive Tree
+  // Keyboard shortcuts: 'I'/'B' for Inventory, 'P' for Passive Tree, 'G' for Gem Sockets
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -65,6 +67,11 @@ export const App: React.FC = () => {
       if (e.key === "p" || e.key === "P") {
         if (activeCharacter) {
           setIsPassiveTreeOpen((prev) => !prev);
+        }
+      }
+      if (e.key === "g" || e.key === "G") {
+        if (activeCharacter) {
+          setIsSocketsModalOpen((prev) => !prev);
         }
       }
     };
@@ -241,6 +248,42 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleUpdateSocketsSetup = (newSetup: SocketsSetup) => {
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        socketsSetup: newSetup
+      };
+    });
+  };
+
+  const handleUpdateInventoryGems = (newGems: string[]) => {
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        inventoryGems: newGems
+      };
+    });
+  };
+
+  const handleCraftCurrency = (currency: "chromatic" | "jeweller" | "fusing") => {
+    if (!activeCharacter) return;
+    if ((activeCharacter.wisdomScrolls || 0) < 1) {
+      showPopupNotification("Not enough Scrolls/Orbs to craft sockets!");
+      return;
+    }
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        wisdomScrolls: Math.max(0, (prev.wisdomScrolls || 0) - 1)
+      };
+    });
+    showPopupNotification(`Rerolled ${currency.toUpperCase()} sockets!`);
+  };
+
   const showPopupNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => {
@@ -337,6 +380,7 @@ export const App: React.FC = () => {
             onSwitchCharacter={handleSwitchCharacter}
             onToggleInventory={() => setIsInventoryOpen((prev) => !prev)}
             onTogglePassiveTree={() => setIsPassiveTreeOpen((prev) => !prev)}
+            onToggleSocketsModal={() => setIsSocketsModalOpen((prev) => !prev)}
           />
 
           {/* POE TETRIS INVENTORY & EQUIPMENT MODAL */}
@@ -359,6 +403,37 @@ export const App: React.FC = () => {
             onUpdateAllocatedNodes={handleUpdateAllocatedNodes}
             playerLevel={activeCharacter.level}
             characterClass={activeCharacter.characterClass}
+          />
+
+          {/* POE SKILL GEMS & SOCKET FORGE MODAL */}
+          <GemSocketModal
+            isOpen={isSocketsModalOpen}
+            onClose={() => setIsSocketsModalOpen(false)}
+            socketsSetup={
+              activeCharacter.socketsSetup || {
+                slot: "mainHand",
+                colors: ["red", "red", "green"],
+                links: [true, false],
+                socketedGems: ["cleave", "support_added_fire", null]
+              }
+            }
+            onUpdateSocketsSetup={handleUpdateSocketsSetup}
+            inventoryGems={
+              activeCharacter.inventoryGems || [
+                "heavy_strike",
+                "support_melee_phys",
+                "split_arrow",
+                "support_gmp",
+                "support_faster_attacks",
+                "fireball",
+                "arc",
+                "raise_zombie"
+              ]
+            }
+            onUpdateInventoryGems={handleUpdateInventoryGems}
+            chaosOrbs={activeCharacter.chaosOrbs || 0}
+            wisdomScrolls={activeCharacter.wisdomScrolls || 0}
+            onCraftCurrency={handleCraftCurrency}
           />
         </>
       )}

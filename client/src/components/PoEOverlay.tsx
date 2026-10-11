@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Coins
 } from "lucide-react";
+import { SKILL_GEMS } from "../data/gemData";
 
 interface PoEOverlayProps {
   room: Room<any> | null;
@@ -24,6 +25,7 @@ interface PoEOverlayProps {
   onSwitchCharacter?: () => void;
   onToggleInventory?: () => void;
   onTogglePassiveTree?: () => void;
+  onToggleSocketsModal?: () => void;
 }
 
 export const PoEOverlay: React.FC<PoEOverlayProps> = ({
@@ -36,7 +38,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
   onToggleAuto,
   onSwitchCharacter,
   onToggleInventory,
-  onTogglePassiveTree
+  onTogglePassiveTree,
+  onToggleSocketsModal
 }) => {
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -244,6 +247,26 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
             }}
           >
             🎒 Gear (I)
+          </button>
+
+          <button
+            onClick={onToggleSocketsModal}
+            style={{
+              backgroundColor: "#17252a",
+              border: "1px solid #1abc9c",
+              color: "#a3e4d7",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 0 10px rgba(26, 188, 156, 0.25)"
+            }}
+          >
+            💎 Sockets (G)
           </button>
 
           <button
@@ -655,34 +678,82 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
 
             <div style={{ width: "1px", height: "40px", backgroundColor: "#3d352a", margin: "0 4px" }} />
 
-            {/* Skills: LMB, Q, W, E */}
-            {[
-              { key: "LMB", name: "Strike", icon: "⚔️" },
-              { key: "Q", name: "Cleave", icon: "🪓" },
-              { key: "W", name: "Dash", icon: "💨" },
-              { key: "E", name: "Molten", icon: "🛡️" }
-            ].map((skill) => (
-              <div
-                key={skill.key}
-                style={{
-                  width: "48px",
-                  height: "50px",
-                  backgroundColor: "#201c18",
-                  border: "1px solid #7f745e",
-                  borderRadius: "3px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "4px 0",
-                  fontSize: "10px"
-                }}
-              >
-                <span style={{ color: "#f0dfb6", fontWeight: 700 }}>{skill.key}</span>
-                <span style={{ fontSize: "16px" }}>{skill.icon}</span>
-                <span style={{ fontSize: "8px", color: "#8a7e6b" }}>{skill.name}</span>
-              </div>
-            ))}
+            {/* Skills: LMB, Q, W, E dynamically sourced from socketed gems */}
+            {(() => {
+              const socketedGems = localPlayer?.socketsSetup?.socketedGems || [];
+              const activeSkills = socketedGems
+                .map((gId: string | null) => (gId ? SKILL_GEMS[gId] : null))
+                .filter((g: any) => g && g.type === "active");
+
+              const defaultSkills = [
+                { key: "LMB", name: "Strike", icon: "⚔️", color: "red", cost: 0 },
+                { key: "Q", name: "Cleave", icon: "🪓", color: "red", cost: 8 },
+                { key: "W", name: "Dash", icon: "💨", color: "green", cost: 5 },
+                { key: "E", name: "Molten", icon: "🌋", color: "red", cost: 9 }
+              ];
+
+              const renderedSkills = defaultSkills.map((def, idx) => {
+                const socketed = activeSkills[idx];
+                if (socketed) {
+                  return {
+                    key: def.key,
+                    name: socketed.name,
+                    icon: socketed.icon,
+                    color: socketed.color,
+                    cost: socketed.manaCost
+                  };
+                }
+                return def;
+              });
+
+              return renderedSkills.map((skill) => (
+                <div
+                  key={skill.key}
+                  onClick={onToggleSocketsModal}
+                  style={{
+                    width: "50px",
+                    height: "52px",
+                    backgroundColor: "#201c18",
+                    border: `1px solid ${
+                      skill.color === "red"
+                        ? "#e74c3c"
+                        : skill.color === "green"
+                        ? "#2ecc71"
+                        : skill.color === "blue"
+                        ? "#3498db"
+                        : "#7f745e"
+                    }`,
+                    borderRadius: "4px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "3px 2px",
+                    fontSize: "10px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 5px rgba(0,0,0,0.4)",
+                    transition: "transform 0.1s"
+                  }}
+                  title={`Skill: ${skill.name} (${skill.cost} Mana) - Click to configure sockets`}
+                >
+                  <span style={{ color: "#f0dfb6", fontWeight: 700, fontSize: "9px" }}>{skill.key}</span>
+                  <span style={{ fontSize: "16px" }}>{skill.icon}</span>
+                  <span
+                    style={{
+                      fontSize: "8px",
+                      color: "#c9b99a",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: "46px",
+                      textAlign: "center"
+                    }}
+                  >
+                    {skill.name}
+                  </span>
+                </div>
+              ));
+            })()}
           </div>
         </div>
 

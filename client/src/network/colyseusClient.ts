@@ -12,6 +12,8 @@ export const colyseus = new Client(SERVER_URL);
 
 import { EquippedGear, GameItem, generateStarterGear } from "../data/itemData";
 
+import { SocketsSetup } from "../components/GemSocketModal";
+
 export interface LocalPlayerData {
   name: string;
   characterClass: string;
@@ -38,6 +40,8 @@ export interface LocalPlayerData {
   equipment?: EquippedGear;
   inventory?: GameItem[];
   allocatedPassives?: string[];
+  socketsSetup?: SocketsSetup;
+  inventoryGems?: string[];
 }
 
 const starter = generateStarterGear("Duelist");
@@ -67,7 +71,23 @@ export const defaultPlayerData: LocalPlayerData = {
   partyId: "",
   equipment: starter.gear,
   inventory: starter.inventory,
-  allocatedPassives: ["start_duelist"]
+  allocatedPassives: ["start_duelist"],
+  socketsSetup: {
+    slot: "mainHand",
+    colors: ["red", "red", "green"],
+    links: [true, false],
+    socketedGems: ["cleave", "support_added_fire", null]
+  },
+  inventoryGems: [
+    "heavy_strike",
+    "support_melee_phys",
+    "split_arrow",
+    "support_gmp",
+    "support_faster_attacks",
+    "fireball",
+    "arc",
+    "raise_zombie"
+  ]
 };
 
 export async function joinTownRoom(playerData: LocalPlayerData): Promise<Room<any>> {
