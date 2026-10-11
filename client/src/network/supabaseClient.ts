@@ -4,7 +4,8 @@ import { LocalPlayerData } from "./colyseusClient";
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || "https://ibixvfsmzvbtrwtgqwgt.supabase.co";
 const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_3v512O5pfGfFZba5o6qksg_PA-Xohzm";
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXh2ZnNtenZidHJ3dGdxd2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MjA3MjksImV4cCI6MjEwNzI5NjcyOX0.HoaWwqPhlCk_pIqwEXc0Bqs9q7wudEpaaH-hyd6sOvU";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
