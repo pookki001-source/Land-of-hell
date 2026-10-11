@@ -70,6 +70,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const rainDropsRef = useRef<RainDrop[]>([]);
   const screenShakeRef = useRef<{ intensity: number; endTime: number }>({ intensity: 0, endTime: 0 });
+  const localPlayerSimRef = useRef({
+    x: 480,
+    y: 350,
+    targetX: 480,
+    targetY: 350,
+    speed: 230,
+    lastTime: performance.now()
+  });
 
   // Initialize rain particles
   useEffect(() => {
@@ -201,16 +209,48 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = "#080606";
       ctx.fillRect(0, 0, width, height);
 
-      // Find local player to center camera
-      let cameraX = 600;
-      let cameraY = 400;
+      // Update local player simulation & camera position
+      const sim = localPlayerSimRef.current;
+      const dt = Math.min((now - sim.lastTime) / 1000, 0.1);
+      sim.lastTime = now;
+
+      let cameraX = sim.x;
+      let cameraY = sim.y;
 
       if (room && room.state && room.state.players) {
         const localPlayer = room.state.players.get(room.sessionId);
         if (localPlayer) {
+          sim.x = localPlayer.x;
+          sim.y = localPlayer.y;
+          if (localPlayer.targetX !== undefined) sim.targetX = localPlayer.targetX;
+          if (localPlayer.targetY !== undefined) sim.targetY = localPlayer.targetY;
           cameraX = localPlayer.x;
           cameraY = localPlayer.y;
+        } else {
+          // If server player not found in room yet, simulate movement locally
+          const dx = sim.targetX - sim.x;
+          const dy = sim.targetY - sim.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 4) {
+            const step = Math.min(dist, sim.speed * dt);
+            sim.x += (dx / dist) * step;
+            sim.y += (dy / dist) * step;
+          }
+          cameraX = sim.x;
+          cameraY = sim.y;
         }
+      } else {
+        // If room is null or connecting, simulate movement locally
+        const dx = sim.targetX - sim.x;
+        const dy = sim.targetY - sim.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 4) {
+          const step = Math.min(dist, sim.speed * dt);
+          sim.x += (dx / dist) * step;
+          sim.y += (dy / dist) * step;
+        }
+        cameraX = sim.x;
+        cameraY = sim.y;
       }
 
       // Calculate screen shake
@@ -282,11 +322,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // ================= 6. PLAYERS =================
+      let renderedLocalPlayer = false;
+
       if (room && room.state && room.state.players) {
         room.state.players.forEach((player: any) => {
           const isLocal = player.id === room.sessionId;
+          if (isLocal) renderedLocalPlayer = true;
           renderDarkFantasyPlayer(ctx, player, isLocal, now);
         });
+      }
+
+      // 100% VISIBILITY GUARANTEE: Always render local player even during connection/loading
+      if (!renderedLocalPlayer) {
+        const localHero = {
+          id: "local_hero",
+          name: localPlayerDataProp?.name || "Exile",
+          characterClass: localPlayerDataProp?.characterClass || "Duelist",
+          level: localPlayerDataProp?.level || 1,
+          x: sim.x,
+          y: sim.y,
+          targetX: sim.targetX,
+          targetY: sim.targetY,
+          hp: localPlayerDataProp?.hp ?? 100,
+          maxHp: localPlayerDataProp?.maxHp ?? 100
+        };
+        renderDarkFantasyPlayer(ctx, localHero, true, now);
       }
 
       // ================= 7. COMBAT SLASH VISUALS =================
@@ -402,16 +462,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Click Handler (Click-to-Move, Attack Monster, Pick Up Loot, Enter Portal)
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!room || !canvasRef.current) return;
+    if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    let cameraX = 600;
-    let cameraY = 400;
-    if (room.state && room.state.players) {
+    let cameraX = localPlayerSimRef.current.x;
+    let cameraY = localPlayerSimRef.current.y;
+    if (room && room.state && room.state.players) {
       const localPlayer = room.state.players.get(room.sessionId);
       if (localPlayer) {
         cameraX = localPlayer.x;
@@ -421,27 +481,49 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const worldX = clickX - (canvas.width / 2 - cameraX);
     const worldY = clickY - (canvas.height / 2 - cameraY);
 
-    // 1. Check Portal Interaction
-    if (zoneType === "town" && room.state.portals) {
-      for (const [id, portal] of (room.state.portals as any).entries()) {
-        const dist = Math.hypot(portal.x - worldX, portal.y - worldY);
-        if (dist < 60) {
-          sounds.playPortalSound();
-          if (onEnterPortal) onEnterPortal(portal.id, portal.partyId);
-          return;
+    // 1. Check Waypoint / Portal Interaction in Town
+    if (zoneType === "town") {
+      // Lioneye's Waypoint is situated at (400, 350)
+      const distToWaypoint = Math.hypot(400 - worldX, 350 - worldY);
+      if (distToWaypoint < 80) {
+        sounds.playPortalSound();
+        if (onEnterPortal) onEnterPortal("portal_strand");
+        return;
+      }
+
+      // Strand Portal is situated at (750, 350)
+      const distToTownPortal = Math.hypot(750 - worldX, 350 - worldY);
+      if (distToTownPortal < 80) {
+        sounds.playPortalSound();
+        if (onEnterPortal) onEnterPortal("portal_strand");
+        return;
+      }
+
+      // Check dynamic town portals if present on server
+      if (room && room.state && room.state.portals) {
+        for (const [id, portal] of (room.state.portals as any).entries()) {
+          const dist = Math.hypot(portal.x - worldX, portal.y - worldY);
+          if (dist < 60) {
+            sounds.playPortalSound();
+            if (onEnterPortal) onEnterPortal(portal.id, portal.partyId);
+            return;
+          }
         }
       }
-    } else if (zoneType === "map" && room.state.portalX !== undefined) {
-      const dist = Math.hypot(room.state.portalX - worldX, room.state.portalY - worldY);
-      if (dist < 60) {
-        sounds.playPortalSound();
-        if (onEnterPortal) onEnterPortal("return_to_town");
-        return;
+    } else if (zoneType === "map") {
+      // Return portal in combat map
+      if (room && room.state && room.state.portalX !== undefined) {
+        const dist = Math.hypot(room.state.portalX - worldX, room.state.portalY - worldY);
+        if (dist < 60) {
+          sounds.playPortalSound();
+          if (onEnterPortal) onEnterPortal("return_to_town");
+          return;
+        }
       }
     }
 
     // 2. Check Loot Click
-    if (zoneType === "map" && room.state.loot) {
+    if (zoneType === "map" && room && room.state && room.state.loot) {
       for (const [id, loot] of (room.state.loot as any).entries()) {
         if (
           worldX >= loot.x - 70 &&
@@ -457,18 +539,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     // 3. Check Monster Click (Manual attack)
-    if (zoneType === "map" && room.state.monsters) {
+    if (zoneType === "map" && room && room.state && room.state.monsters) {
       for (const [id, monster] of (room.state.monsters as any).entries()) {
         const dist = Math.hypot(monster.x - worldX, monster.y - worldY);
         if (dist < 38) {
+          localPlayerSimRef.current.targetX = monster.x;
+          localPlayerSimRef.current.targetY = monster.y;
           room.send("attack_monster", { monsterId: id });
-          room.send("move", { x: monster.x, y: monster.y });
+          room.send("move", { x: Math.round(monster.x), y: Math.round(monster.y) });
           return;
         }
       }
     }
 
-    // 4. Default Click-to-Move
+    // 4. Responsive Local Click-to-Move
+    localPlayerSimRef.current.targetX = worldX;
+    localPlayerSimRef.current.targetY = worldY;
+
     ripplesRef.current.push({
       x: worldX,
       y: worldY,
@@ -476,7 +563,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       alpha: 1.0
     });
 
-    room.send("move", { x: worldX, y: worldY });
+    // Send move to room if connected
+    if (room) {
+      try {
+        room.send("move", { x: Math.round(worldX), y: Math.round(worldY) });
+      } catch (err) {
+        console.warn("Could not dispatch move to server:", err);
+      }
+    }
   };
 
   return (

@@ -396,7 +396,7 @@ export function renderDarkFantasyPlayer(
   }
 
   // Draw Character Sprite with Drop Shadow & Animation
-  drawSprite(ctx, spriteKey, player.x, player.y, {
+  const drawn = drawSprite(ctx, spriteKey, player.x, player.y, {
     width: 68,
     height: 68,
     flipX,
@@ -408,6 +408,10 @@ export function renderDarkFantasyPlayer(
     shadowRadiusX: 18,
     shadowRadiusY: 6
   });
+
+  if (!drawn) {
+    renderProceduralHero(ctx, player.x, player.y + offsetY, charClass, flipX, rotation);
+  }
 
   // Character Nameplate & Level Tag
   ctx.font = "bold 11px 'Cinzel', serif";
@@ -487,7 +491,7 @@ export function renderDarkFantasyMonster(
   }
 
   // Draw Monster Sprite with Drop Shadow
-  drawSprite(ctx, spriteKey, monster.x, monster.y, {
+  const drawn = drawSprite(ctx, spriteKey, monster.x, monster.y, {
     width: spriteWidth,
     height: spriteHeight,
     flipX,
@@ -498,6 +502,10 @@ export function renderDarkFantasyMonster(
     shadowRadiusX: isBoss ? 32 : 18,
     shadowRadiusY: isBoss ? 10 : 5.5
   });
+
+  if (!drawn) {
+    renderProceduralMonsterFallback(ctx, monster.x, monster.y + offsetY, isBoss, isMagic, spriteKey, flipX);
+  }
 
   // Health Bar & Monster Name (Above head)
   const hpRatio = Math.max(0, Math.min(1, monster.hp / (monster.maxHp || 1)));
@@ -706,6 +714,285 @@ export function renderDarknessVignette(
   edgeGrad.addColorStop(1, "rgba(0, 0, 0, 0.75)");
   ctx.fillStyle = edgeGrad;
   ctx.fillRect(0, 0, width, height);
+
+  ctx.restore();
+}
+
+// ================= 7. PROCEDURAL HERO & MONSTER FALLBACKS =================
+
+export function renderProceduralHero(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  charClass: string,
+  flipX: boolean,
+  rotation: number
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (rotation) ctx.rotate(rotation);
+  if (flipX) ctx.scale(-1, 1);
+
+  // Ground drop shadow
+  ctx.save();
+  const shadowGrad = ctx.createRadialGradient(0, 24, 0, 0, 24, 22);
+  shadowGrad.addColorStop(0, "rgba(0,0,0,0.75)");
+  shadowGrad.addColorStop(0.6, "rgba(0,0,0,0.38)");
+  shadowGrad.addColorStop(1, "transparent");
+  ctx.fillStyle = shadowGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 24, 22, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  const c = charClass.toLowerCase();
+
+  if (c.includes("witch")) {
+    // Flowing Occult Robe
+    ctx.fillStyle = "#1e1329";
+    ctx.beginPath();
+    ctx.moveTo(0, -14);
+    ctx.lineTo(16, 22);
+    ctx.lineTo(-16, 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#8e44ad";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Cowl / Hood
+    ctx.fillStyle = "#2c1742";
+    ctx.beginPath();
+    ctx.arc(0, -18, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#9b59b6";
+    ctx.stroke();
+
+    // Occult eyes
+    ctx.fillStyle = "#d2b4de";
+    ctx.fillRect(-3, -19, 2, 2);
+    ctx.fillRect(2, -19, 2, 2);
+
+    // Arcane Staff
+    ctx.strokeStyle = "#5b3924";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(14, 20);
+    ctx.lineTo(16, -26);
+    ctx.stroke();
+
+    // Staff Crystal Orb
+    const orbGrad = ctx.createRadialGradient(16, -28, 1, 16, -28, 8);
+    orbGrad.addColorStop(0, "#ffffff");
+    orbGrad.addColorStop(0.4, "#bb8fce");
+    orbGrad.addColorStop(1, "#8e44ad");
+    ctx.fillStyle = orbGrad;
+    ctx.beginPath();
+    ctx.arc(16, -28, 6, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (c.includes("ranger")) {
+    // Cloak
+    ctx.fillStyle = "#142d1b";
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(15, 20);
+    ctx.lineTo(-15, 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#27ae60";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Hood
+    ctx.fillStyle = "#1e4328";
+    ctx.beginPath();
+    ctx.arc(0, -16, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Leather Cuirass
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(-7, -8, 14, 15);
+
+    // Curved Longbow
+    ctx.strokeStyle = "#8d6e63";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(15, 0, 18, -Math.PI * 0.45, Math.PI * 0.45);
+    ctx.stroke();
+
+    // Bowstring
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(15 + Math.cos(-Math.PI * 0.45) * 18, Math.sin(-Math.PI * 0.45) * 18);
+    ctx.lineTo(15 + Math.cos(Math.PI * 0.45) * 18, Math.sin(Math.PI * 0.45) * 18);
+    ctx.stroke();
+  } else if (c.includes("warrior") || c.includes("marauder") || c.includes("templar")) {
+    // Heavy Plate Torso
+    ctx.fillStyle = "#2c3e50";
+    ctx.fillRect(-10, -10, 20, 24);
+    ctx.strokeStyle = "#d4ac0d";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-10, -10, 20, 24);
+
+    // Iron Helmet
+    ctx.fillStyle = "#34495e";
+    ctx.beginPath();
+    ctx.arc(0, -18, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#7f8c8d";
+    ctx.stroke();
+
+    // Visor Slit
+    ctx.fillStyle = "#f1c40f";
+    ctx.fillRect(-4, -18, 8, 2);
+
+    // Giant Battle-axe
+    ctx.strokeStyle = "#3e2723";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(16, 22);
+    ctx.lineTo(16, -26);
+    ctx.stroke();
+
+    // Steel Axe Blade
+    ctx.fillStyle = "#bdc3c7";
+    ctx.strokeStyle = "#ecf0f1";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(16, -24);
+    ctx.quadraticCurveTo(28, -26, 26, -12);
+    ctx.lineTo(16, -14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    // Duelist Crimson Tunic
+    ctx.fillStyle = "#78281f";
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(14, 21);
+    ctx.lineTo(-14, 21);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#c0392b";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Head / Cowl
+    ctx.fillStyle = "#2c3e50";
+    ctx.beginPath();
+    ctx.arc(0, -17, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mask / Eyes
+    ctx.fillStyle = "#f5b041";
+    ctx.fillRect(-3, -17, 2, 2);
+    ctx.fillRect(2, -17, 2, 2);
+
+    // Duelist Steel Rapier
+    ctx.strokeStyle = "#d5d8dc";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(10, 8);
+    ctx.lineTo(24, -14);
+    ctx.stroke();
+
+    // Rapier Guard
+    ctx.strokeStyle = "#f39c12";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(12, 6, 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+export function renderProceduralMonsterFallback(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  isBoss: boolean,
+  isMagic: boolean,
+  spriteKey: string,
+  flipX: boolean
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (flipX) ctx.scale(-1, 1);
+
+  // Drop Shadow
+  const r = isBoss ? 28 : 16;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.beginPath();
+  ctx.ellipse(0, isBoss ? 28 : 16, r, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (isBoss) {
+    // Giant Demonic Fiend Silhouette
+    ctx.fillStyle = "#4a121a";
+    ctx.beginPath();
+    ctx.arc(0, -15, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#c0392b";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Horns
+    ctx.fillStyle = "#1b0a0e";
+    ctx.beginPath();
+    ctx.moveTo(-16, -25);
+    ctx.lineTo(-26, -45);
+    ctx.lineTo(-10, -32);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(16, -25);
+    ctx.lineTo(26, -45);
+    ctx.lineTo(10, -32);
+    ctx.fill();
+
+    // Glowing Hellfire Eyes
+    ctx.fillStyle = "#f39c12";
+    ctx.fillRect(-8, -18, 5, 4);
+    ctx.fillRect(4, -18, 5, 4);
+  } else if (spriteKey.includes("skeleton")) {
+    // Skeletal Minion
+    ctx.strokeStyle = "#bdc3c7";
+    ctx.lineWidth = 2.5;
+    // Spine & Ribs
+    ctx.beginPath();
+    ctx.moveTo(0, -18);
+    ctx.lineTo(0, 14);
+    ctx.moveTo(-8, -6);
+    ctx.lineTo(8, -6);
+    ctx.moveTo(-7, 0);
+    ctx.lineTo(7, 0);
+    ctx.stroke();
+
+    // Skull
+    ctx.fillStyle = "#ecf0f1";
+    ctx.beginPath();
+    ctx.arc(0, -20, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#17202a";
+    ctx.fillRect(-3, -21, 2, 2);
+    ctx.fillRect(2, -21, 2, 2);
+  } else {
+    // Rotten Zombie / Beast
+    ctx.fillStyle = isMagic ? "#1f3a52" : "#2d3748";
+    ctx.beginPath();
+    ctx.arc(0, -10, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isMagic ? "#3498db" : "#4a5568";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Red Malevolent Eyes
+    ctx.fillStyle = isMagic ? "#5dade2" : "#e74c3c";
+    ctx.fillRect(-5, -12, 3, 3);
+    ctx.fillRect(3, -12, 3, 3);
+  }
 
   ctx.restore();
 }
