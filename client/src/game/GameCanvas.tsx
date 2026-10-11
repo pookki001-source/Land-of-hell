@@ -11,6 +11,8 @@ import {
   renderDepthSortedEntities,
   DepthEntity,
   applyDiablo2PitchBlackLighting,
+  setShadowLight,
+  getShadowVec,
   LightSource
 } from "./isometricEngine";
 import {
@@ -25,6 +27,21 @@ import {
 export const CAMERA_ZOOM = 1.6;
 
 // Town layout: everything is arranged around the campfire so scene and click hit-tests agree.
+// Shadow of an upright prop (width w, height h) sheared away from the dominant light.
+const propShadow = (c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  const v = getShadowVec(x, y);
+  c.save();
+  c.fillStyle = `rgba(0, 0, 0, ${v.alpha})`;
+  c.beginPath();
+  c.moveTo(x - w / 2, y);
+  c.lineTo(x + w / 2, y);
+  c.lineTo(x + w / 2 - v.a * h, y - v.b * h);
+  c.lineTo(x - w / 2 - v.a * h, y - v.b * h);
+  c.closePath();
+  c.fill();
+  c.restore();
+};
+
 const TOWN = {
   fire: [480, 420],
   waypoint: [380, 320],
@@ -336,7 +353,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const screenCenterY = height / 2;
 
       // Helper to project isometric world light coordinates into screen space under camera zoom
-      const toScreenLight = (isoX: number, isoY: number, baseRadius: number): LightSource => ({
+      const toScreenLight = (isoX: number, isoY: number, baseRadius: number, color?: string): LightSource => ({
+        color,
         screenX: screenCenterX + shakeOffsetX + (isoX - cameraIsoX) * CAMERA_ZOOM,
         screenY: screenCenterY + shakeOffsetY + (isoY - cameraIsoY) * CAMERA_ZOOM,
         radius: baseRadius * CAMERA_ZOOM
@@ -408,6 +426,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // ================= 6. GATHER & DEPTH-SORT ALL ENTITIES =================
       const depthEntities: DepthEntity[] = [];
 
+      // Dominant light for cast shadows: the campfire in town, the player's torch in maps
+      const fireIsoPos = worldToIso(...TOWN.fire);
+      if (zoneType === "town") setShadowLight(fireIsoPos.x, fireIsoPos.y);
+      else setShadowLight(playerIso.x, playerIso.y);
+
       // Secondary light sources to feed into the pitch black lighting mask
       const secondaryLights: LightSource[] = [];
 
@@ -431,10 +454,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             depth: pIso.y,
             render: (c) => {
               c.save();
-              c.fillStyle = "rgba(0, 0, 0, 0.45)";
-              c.beginPath();
-              c.ellipse(pIso.x + 6, pIso.y + 4, 12, 5, 0, 0, Math.PI * 2);
-              c.fill();
+              propShadow(c, pIso.x, pIso.y, 12, 46);
 
               c.fillStyle = "#3b2b1e";
               c.strokeStyle = "#20150d";
@@ -468,7 +488,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           { wx: 220, wy: 220 },
           { wx: 740, wy: 220 },
           { wx: 220, wy: 620 },
-          { wx: 740, wy: 620 }
+          { wx: 740, wy: 620 },
+          { wx: 400, wy: 625 },
+          { wx: 560, wy: 625 }
         ];
         campTorches.forEach((torch, tIdx) => {
           const tIso = worldToIso(torch.wx, torch.wy);
@@ -476,10 +498,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             depth: tIso.y,
             render: (c) => {
               c.save();
-              c.fillStyle = "rgba(0, 0, 0, 0.5)";
-              c.beginPath();
-              c.ellipse(tIso.x + 5, tIso.y + 2, 10, 4, 0, 0, Math.PI * 2);
-              c.fill();
+              propShadow(c, tIso.x, tIso.y, 6, 48);
 
               c.strokeStyle = "#2b221a";
               c.lineWidth = 4;
@@ -533,10 +552,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             depth: cIso.y,
             render: (c) => {
               c.save();
-              c.fillStyle = "rgba(0, 0, 0, 0.4)";
-              c.beginPath();
-              c.ellipse(cIso.x + 4, cIso.y + 4, 16 * crate.scale, 7 * crate.scale, 0, 0, Math.PI * 2);
-              c.fill();
+              propShadow(c, cIso.x, cIso.y, 22 * crate.scale, 18 * crate.scale);
 
               const w = 22 * crate.scale;
               const h = 18 * crate.scale;
@@ -562,10 +578,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           depth: tentIso.y,
           render: (c) => {
             c.save();
-            c.fillStyle = "rgba(0, 0, 0, 0.5)";
-            c.beginPath();
-            c.ellipse(tentIso.x + 6, tentIso.y + 6, 38, 16, 0, 0, Math.PI * 2);
-            c.fill();
+            propShadow(c, tentIso.x, tentIso.y, 64, 44);
 
             c.fillStyle = "#5c5243";
             c.beginPath();
@@ -591,6 +604,47 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.stroke();
             c.restore();
           }
+        });
+
+        // 3b. Barrels along walls and by the stash
+        [[330, 415], [240, 300], [255, 335], [720, 300], [740, 335], [700, 560]].forEach(([wx, wy]) => {
+          const b = worldToIso(wx, wy);
+          depthEntities.push({
+            depth: b.y,
+            render: (c) => {
+              propShadow(c, b.x, b.y, 18, 22);
+              c.save();
+              c.fillStyle = "#4b3524";
+              c.fillRect(b.x - 9, b.y - 22, 18, 22);
+              c.fillStyle = "#1e1a16";
+              c.fillRect(b.x - 9, b.y - 17, 18, 2);
+              c.fillRect(b.x - 9, b.y - 6, 18, 2);
+              c.fillStyle = "#6a4d33";
+              c.beginPath();
+              c.ellipse(b.x, b.y - 22, 9, 3.5, 0, 0, Math.PI * 2);
+              c.fill();
+              c.restore();
+            }
+          });
+        });
+
+        // 3c. Ambient villagers (by the fire) and gate guards, so the camp feels inhabited
+        [
+          { p: [430, 395], dir: "down_right", s: 0.4, villager: true },
+          { p: [545, 450], dir: "up_left", s: 0.42, villager: true },
+          { p: [430, 610], dir: "up", s: 0.45, villager: false },
+          { p: [530, 610], dir: "up", s: 0.45, villager: false }
+        ].forEach((f) => {
+          const iso = worldToIso(f.p[0], f.p[1]);
+          depthEntities.push({
+            depth: iso.y,
+            render: (c) => {
+              c.save();
+              if (f.villager) c.filter = "sepia(0.7) brightness(0.75)";
+              isoSpriteRenderer.drawSprite(c, "knight", f.dir, iso.x, iso.y, f.s);
+              c.restore();
+            }
+          });
         });
 
         // 4. Waypoint (Return Obelisk) situated at (400, 350)
@@ -619,7 +673,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.restore();
           }
         });
-        secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 220 + Math.sin(now / 150) * 8));
+        secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 220 + Math.sin(now / 150) * 8, "70, 230, 140"));
 
         // 5. Medieval Campfire situated at (480, 480)
         const fireIso = worldToIso(...TOWN.fire);
@@ -719,7 +773,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.restore();
           }
         });
-        secondaryLights.push(toScreenLight(portalIso.x, portalIso.y, 220 + Math.sin(now / 120) * 10));
+        secondaryLights.push(toScreenLight(portalIso.x, portalIso.y, 220 + Math.sin(now / 120) * 10, "70, 150, 255"));
 
         // Dynamic Portals from Server
         if (room && room.state && room.state.portals) {

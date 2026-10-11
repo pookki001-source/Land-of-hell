@@ -1,3 +1,4 @@
+import { drawCastShadow } from "./isometricEngine";
 /**
  * Land of Hell - 8-Directional Isometric Sprite Animator & State Machine
  * Handles:
@@ -205,7 +206,8 @@ export class CharacterSpriteAnimator {
     ctx.save();
 
     // 1. Soft Realistic Isometric Drop Shadow under feet
-    const srx = dw * 0.28;
+    drawCastShadow(ctx, this.image, sx, sy, sw, sh, screenX, screenY, screenX - ax, screenY - ay, dw, dh);
+    const srx = dw * 0.16;
     const sry = srx * 0.48;
     const shadowGrad = ctx.createRadialGradient(
       screenX,

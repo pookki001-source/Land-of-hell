@@ -215,7 +215,7 @@ class IsometricSpriteManager {
     ctx.save();
 
     // 1. Isometric Ground Drop Shadow (Realistic dark ellipse beneath feet)
-    const shadowRadiusX = drawW * 0.32;
+    const shadowRadiusX = drawW * 0.18;
     const shadowRadiusY = shadowRadiusX * 0.48; // 2:1 isometric aspect ratio
     const shadowGrad = ctx.createRadialGradient(
       screenX,
@@ -225,13 +225,18 @@ class IsometricSpriteManager {
       screenY,
       shadowRadiusX
     );
-    shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.78)");
-    shadowGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.4)");
+    shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.6)");
+    shadowGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.3)");
     shadowGrad.addColorStop(1, "transparent");
     ctx.fillStyle = shadowGrad;
     ctx.beginPath();
     ctx.ellipse(screenX, screenY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Directional cast shadow (light sources like fire and portals cast none)
+    if (key !== "campfire" && key !== "portal") {
+      drawCastShadow(ctx, img, frame.x, frame.y, frame.w, frame.h, screenX, screenY, screenX - anchorX, screenY - anchorY, drawW, drawH);
+    }
 
     // 2. Draw Sprite Sliced from Pre-rendered Atlas
     ctx.translate(screenX, screenY);
@@ -257,6 +262,44 @@ class IsometricSpriteManager {
 }
 
 export const isoSpriteRenderer = new IsometricSpriteManager();
+
+// ================= 2b. DIRECTIONAL CAST SHADOWS =================
+// One dominant light per frame (campfire in town, player torch in maps); shadows fall away from it.
+let shadowLight: { x: number; y: number } | null = null;
+export function setShadowLight(x: number, y: number) {
+  shadowLight = { x, y };
+}
+
+/** Screen-space shear (a, b) of an upright object's shadow plus its opacity, for an object standing at (x, y). */
+export function getShadowVec(x: number, y: number) {
+  const L = shadowLight ?? { x: x + 200, y: y - 200 };
+  const dx = x - L.x;
+  const dy = y - L.y;
+  const d = Math.max(1, Math.hypot(dx, dy));
+  return {
+    a: -(dx / d) * 0.9,
+    b: -((dy / d) * 0.45 + 0.25) * 0.9,
+    alpha: 0.55 * Math.max(0.15, 1 - d / 700)
+  };
+}
+
+/** Draws a sprite frame as a flattened black silhouette sheared along the light direction. */
+export function drawCastShadow(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  sx: number, sy: number, sw: number, sh: number,
+  footX: number, footY: number,
+  left: number, top: number, w: number, h: number
+) {
+  if (!("filter" in ctx)) return; // shortcut: Safari lacks canvas filters, falls back to contact shadow only
+  const v = getShadowVec(footX, footY);
+  ctx.save();
+  ctx.globalAlpha = v.alpha;
+  ctx.filter = "brightness(0)";
+  ctx.transform(1, 0, v.a, v.b, footX, footY);
+  ctx.drawImage(img, sx, sy, sw, sh, left - footX, top - footY, w, h);
+  ctx.restore();
+}
 
 // ================= 3. ISOMETRIC RHOMBUS TILEMAP ENGINE =================
 
@@ -306,6 +349,24 @@ export function drawIsometricTilemap(
 
         ctx.drawImage(stoneImg, sx, sy, 128, 128, screenX - hw, screenY - hh, TILE_WIDTH, TILE_HEIGHT);
 
+        // Per-tile weathering: random brightness, dirt patches and cracks so the floor never reads as a repeating pattern
+        const h = ((Math.imul(gx, 374761393) ^ Math.imul(gy, 668265263)) >>> 0) % 1000 / 1000;
+        ctx.fillStyle = `rgba(0, 0, 0, ${h * 0.3})`;
+        ctx.fill();
+        if (h > 0.72) {
+          ctx.fillStyle = `rgba(70, 48, 26, ${(h - 0.72) * 1.2})`;
+          ctx.fill();
+        }
+        if (h < 0.22) {
+          ctx.strokeStyle = "rgba(5, 4, 3, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(screenX - hw * (0.2 + h), screenY - hh * 0.6);
+          ctx.lineTo(screenX + hw * 0.1, screenY + hh * (h * 2));
+          ctx.lineTo(screenX + hw * (0.5 - h), screenY + hh * 0.7);
+          ctx.stroke();
+        }
+
         // Dark fantasy tone tinting
         if (zoneType === "town") {
           ctx.fillStyle = isAlt ? "rgba(12, 10, 8, 0.42)" : "rgba(22, 18, 15, 0.32)";
@@ -316,7 +377,7 @@ export function drawIsometricTilemap(
         ctx.restore();
 
         // Deep dark recessed grout seam
-        ctx.strokeStyle = zoneType === "town" ? "#080605" : "#040305";
+        ctx.strokeStyle = zoneType === "town" ? "rgba(8, 6, 5, 0.55)" : "rgba(4, 3, 5, 0.7)";
         ctx.lineWidth = 1.3;
         ctx.stroke();
 
@@ -381,7 +442,7 @@ export interface LightSource {
   screenX: number;
   screenY: number;
   radius: number;
-  color?: string; // e.g. "warm", "cyan", "purple"
+  color?: string; // "r,g,b" tint of the glow, defaults to firelight
 }
 
 export function applyDiablo2PitchBlackLighting(
@@ -460,6 +521,22 @@ export function applyDiablo2PitchBlackLighting(
   ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = zoneType === "town" ? 0.82 : 1.0;
   ctx.drawImage(mask, 0, 0);
+
+  // Cool moonlit night ambience so firelight reads as warm against it
+  ctx.fillStyle = "rgba(8, 16, 40, 0.12)";
+  ctx.fillRect(0, 0, width, height);
+
+  // Colored additive glow per light source (orange fire, green waypoint, blue portal)
+  ctx.globalCompositeOperation = "lighter";
+  for (const light of secondaryLights) {
+    const rgb = light.color ?? "255, 140, 50";
+    const glow = ctx.createRadialGradient(light.screenX, light.screenY, 0, light.screenX, light.screenY, light.radius * 0.9);
+    glow.addColorStop(0, `rgba(${rgb}, 0.2)`);
+    glow.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(light.screenX - light.radius, light.screenY - light.radius, light.radius * 2, light.radius * 2);
+  }
+  ctx.globalCompositeOperation = "source-over";
 
   // 4. Subtle Warm Amber Torchlight Ambient Tint inside light cone
   const warmGlow = ctx.createRadialGradient(
