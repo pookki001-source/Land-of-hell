@@ -9,48 +9,93 @@ import {
 } from "./network/colyseusClient";
 import { GameCanvas } from "./game/GameCanvas";
 import { PoEOverlay } from "./components/PoEOverlay";
+import { CharacterSelectScreen } from "./components/CharacterSelectScreen";
 import { sounds } from "./utils/soundEffects";
-import { saveCharacterToCloud, loadCharacterFromCloud } from "./network/supabaseClient";
+import {
+  saveCharacterToCloud,
+  fetchUserCharacters,
+  deleteCharacterFromCloud
+} from "./network/supabaseClient";
 
 export const App: React.FC = () => {
-  const [room, setRoom] = useState<Room<any> | null>(null);
-  const [zoneType, setZoneType] = useState<"town" | "map">("town");
-  const [playerData, setPlayerData] = useState<LocalPlayerData>(() => {
-    const saved = localStorage.getItem("land_of_hell_char");
+  const [characters, setCharacters] = useState<LocalPlayerData[]>(() => {
+    const saved = localStorage.getItem("land_of_hell_roster");
     if (saved) {
       try {
-        return { ...defaultPlayerData, ...JSON.parse(saved) };
+        return JSON.parse(saved);
       } catch (e) {}
     }
-    return defaultPlayerData;
+    const singleSaved = localStorage.getItem("land_of_hell_char");
+    if (singleSaved) {
+      try {
+        return [{ ...defaultPlayerData, ...JSON.parse(singleSaved) }];
+      } catch (e) {}
+    }
+    return [];
   });
+
+  const [activeCharacter, setActiveCharacter] = useState<LocalPlayerData | null>(null);
+  const [room, setRoom] = useState<Room<any> | null>(null);
+  const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
   const [onlineCount, setOnlineCount] = useState<number>(1);
-  const [statusMessage, setStatusMessage] = useState<string>("Connecting to Land of Hell Realm...");
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [notification, setNotification] = useState<string | null>(null);
 
-  const prevLevelRef = useRef<number>(playerData.level);
+  const prevLevelRef = useRef<number>(1);
 
-  // Save character data to localStorage and Supabase Cloud on change
+  // Sync roster with Supabase Cloud on mount
   useEffect(() => {
-    localStorage.setItem("land_of_hell_char", JSON.stringify(playerData));
+    async function syncRoster() {
+      const cloudChars = await fetchUserCharacters();
+      if (cloudChars && cloudChars.length > 0) {
+        setCharacters(cloudChars);
+        localStorage.setItem("land_of_hell_roster", JSON.stringify(cloudChars));
+      }
+    }
+    syncRoster();
+  }, []);
+
+  // Save active character data on change
+  useEffect(() => {
+    if (!activeCharacter) return;
+
+    localStorage.setItem("land_of_hell_char", JSON.stringify(activeCharacter));
+
+    // Update roster array
+    setCharacters((prev) => {
+      const updated = prev.map((c) =>
+        c.name === activeCharacter.name ? { ...activeCharacter } : c
+      );
+      if (!updated.some((c) => c.name === activeCharacter.name)) {
+        updated.push({ ...activeCharacter });
+      }
+      localStorage.setItem("land_of_hell_roster", JSON.stringify(updated));
+      return updated;
+    });
 
     // Debounced Cloud Save to Supabase
     const timer = setTimeout(() => {
-      saveCharacterToCloud(playerData);
+      saveCharacterToCloud(activeCharacter);
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [playerData]);
+  }, [activeCharacter]);
 
-  // Connect to Town on initial load
+  // Connect to Town when active character is selected
   useEffect(() => {
+    if (!activeCharacter) {
+      if (room) room.leave();
+      setRoom(null);
+      return;
+    }
+
     let currentRoom: Room<any> | null = null;
 
     async function initTown() {
       try {
         setStatusMessage("Entering Lioneye's Watch...");
-        currentRoom = await joinTownRoom(playerData);
+        currentRoom = await joinTownRoom(activeCharacter!);
         setRoom(currentRoom);
         setZoneType("town");
         setStatusMessage("");
@@ -58,7 +103,7 @@ export const App: React.FC = () => {
         setupRoomListeners(currentRoom);
       } catch (err: any) {
         console.error("Failed to connect to town room:", err);
-        setStatusMessage("Cannot connect to Game Server. Make sure the server is running!");
+        setStatusMessage("Cannot connect to Game Server. Please try again.");
       }
     }
 
@@ -67,7 +112,7 @@ export const App: React.FC = () => {
     return () => {
       if (currentRoom) currentRoom.leave();
     };
-  }, []);
+  }, [activeCharacter?.name]);
 
   const setupRoomListeners = (activeRoom: Room<any>) => {
     activeRoom.onStateChange((state: any) => {
@@ -83,20 +128,23 @@ export const App: React.FC = () => {
             prevLevelRef.current = local.level;
           }
 
-          // Update persisted player data
-          setPlayerData((prev) => ({
-            ...prev,
-            level: local.level || prev.level,
-            exp: local.exp || prev.exp,
-            maxExp: local.maxExp || prev.maxExp,
-            hp: local.hp || prev.hp,
-            maxHp: local.maxHp || prev.maxHp,
-            dps: local.dps || prev.dps,
-            chaosOrbs: local.chaosOrbs !== undefined ? local.chaosOrbs : prev.chaosOrbs,
-            divineOrbs: local.divineOrbs !== undefined ? local.divineOrbs : prev.divineOrbs,
-            wisdomScrolls: local.wisdomScrolls !== undefined ? local.wisdomScrolls : prev.wisdomScrolls,
-            kills: local.kills !== undefined ? local.kills : prev.kills
-          }));
+          // Update persisted active character data
+          setActiveCharacter((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              level: local.level || prev.level,
+              exp: local.exp || prev.exp,
+              maxExp: local.maxExp || prev.maxExp,
+              hp: local.hp || prev.hp,
+              maxHp: local.maxHp || prev.maxHp,
+              dps: local.dps || prev.dps,
+              chaosOrbs: local.chaosOrbs !== undefined ? local.chaosOrbs : prev.chaosOrbs,
+              divineOrbs: local.divineOrbs !== undefined ? local.divineOrbs : prev.divineOrbs,
+              wisdomScrolls: local.wisdomScrolls !== undefined ? local.wisdomScrolls : prev.wisdomScrolls,
+              kills: local.kills !== undefined ? local.kills : prev.kills
+            };
+          });
         }
 
         setOnlineCount(state.players.size || 1);
@@ -108,6 +156,32 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleSelectCharacter = (char: LocalPlayerData) => {
+    prevLevelRef.current = char.level || 1;
+    setActiveCharacter(char);
+  };
+
+  const handleCreateCharacter = async (newChar: LocalPlayerData) => {
+    prevLevelRef.current = 1;
+    await saveCharacterToCloud(newChar);
+    setCharacters((prev) => [...prev, newChar]);
+    setActiveCharacter(newChar);
+  };
+
+  const handleDeleteCharacter = async (name: string) => {
+    await deleteCharacterFromCloud(name);
+    setCharacters((prev) => prev.filter((c) => c.name !== name));
+    if (activeCharacter?.name === name) {
+      setActiveCharacter(null);
+    }
+  };
+
+  const handleSwitchCharacter = () => {
+    if (room) room.leave();
+    setRoom(null);
+    setActiveCharacter(null);
+  };
+
   const showPopupNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => {
@@ -117,10 +191,10 @@ export const App: React.FC = () => {
 
   // Transition from Town to Map
   const handleEnterPortal = async (portalId: string, partyId?: string) => {
-    if (!room) return;
+    if (!room || !activeCharacter) return;
     try {
       setStatusMessage("Entering Map Instance...");
-      const currentPartyId = partyId || playerData.partyId || `party_${room.sessionId}`;
+      const currentPartyId = partyId || activeCharacter.partyId || `party_${room.sessionId}`;
 
       await room.leave();
 
@@ -128,7 +202,7 @@ export const App: React.FC = () => {
         currentPartyId,
         "The Twilight Strand (Tier 1)",
         1,
-        playerData
+        activeCharacter
       );
 
       setRoom(newMapRoom);
@@ -145,12 +219,12 @@ export const App: React.FC = () => {
 
   // Return from Map to Town
   const handleReturnToTown = async () => {
-    if (!room) return;
+    if (!room || !activeCharacter) return;
     try {
       setStatusMessage("Returning to Lioneye's Watch...");
       await room.leave();
 
-      const townRoom = await joinTownRoom(playerData);
+      const townRoom = await joinTownRoom(activeCharacter);
       setRoom(townRoom);
       setZoneType("town");
       setStatusMessage("");
@@ -173,23 +247,38 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
-      {/* 2D CANVAS GAME ENGINE */}
-      <GameCanvas
-        room={room}
-        zoneType={zoneType}
-        onEnterPortal={zoneType === "town" ? handleEnterPortal : handleReturnToTown}
-      />
+      {/* 1. CHARACTER SELECT / CREATE SCREEN */}
+      {!activeCharacter && (
+        <CharacterSelectScreen
+          characters={characters}
+          onSelectCharacter={handleSelectCharacter}
+          onCreateCharacter={handleCreateCharacter}
+          onDeleteCharacter={handleDeleteCharacter}
+        />
+      )}
 
-      {/* POE HUD & ACTION OVERLAY */}
-      <PoEOverlay
-        room={room}
-        zoneType={zoneType}
-        localPlayer={localPlayerState || playerData}
-        onlineCount={onlineCount}
-        onOpenPortal={() => handleEnterPortal("custom_portal")}
-        onReturnToTown={handleReturnToTown}
-        onToggleAuto={handleToggleAuto}
-      />
+      {/* 2. 2D CANVAS GAME ENGINE */}
+      {activeCharacter && (
+        <>
+          <GameCanvas
+            room={room}
+            zoneType={zoneType}
+            onEnterPortal={zoneType === "town" ? handleEnterPortal : handleReturnToTown}
+          />
+
+          {/* POE HUD & ACTION OVERLAY */}
+          <PoEOverlay
+            room={room}
+            zoneType={zoneType}
+            localPlayer={localPlayerState || activeCharacter}
+            onlineCount={onlineCount}
+            onOpenPortal={() => handleEnterPortal("custom_portal")}
+            onReturnToTown={handleReturnToTown}
+            onToggleAuto={handleToggleAuto}
+            onSwitchCharacter={handleSwitchCharacter}
+          />
+        </>
+      )}
 
       {/* LOADING / CONNECTING MODAL */}
       {statusMessage && (

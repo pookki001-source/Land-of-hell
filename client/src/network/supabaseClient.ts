@@ -41,6 +41,58 @@ export async function saveCharacterToCloud(data: LocalPlayerData): Promise<boole
   }
 }
 
+// Fetch all characters in account
+export async function fetchUserCharacters(): Promise<LocalPlayerData[]> {
+  try {
+    const { data, error } = await supabase
+      .from("characters")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      return [];
+    }
+
+    return data.map((d: any) => ({
+      name: d.name,
+      characterClass: d.character_class || "Duelist",
+      level: d.level || 1,
+      exp: d.exp || 0,
+      maxExp: Math.floor(100 * Math.pow(1.5, (d.level || 1) - 1)),
+      hp: d.hp || 250,
+      maxHp: d.max_hp || 250,
+      energyShield: 0,
+      maxEnergyShield: 0,
+      mana: 100,
+      maxMana: 100,
+      strength: 20,
+      dexterity: 20,
+      intelligence: 20,
+      armour: 40,
+      evasion: 40,
+      dps: d.dps || 40,
+      chaosOrbs: d.chaos_orbs || 0,
+      divineOrbs: d.divine_orbs || 0,
+      wisdomScrolls: d.wisdom_scrolls || 5,
+      kills: d.kills || 0,
+      partyId: ""
+    }));
+  } catch (err) {
+    console.error("Failed to fetch characters from Supabase:", err);
+    return [];
+  }
+}
+
+// Delete character from Cloud
+export async function deleteCharacterFromCloud(name: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from("characters").delete().eq("name", name);
+    return !error;
+  } catch (err) {
+    return false;
+  }
+}
+
 // Load character from Supabase Cloud by Name
 export async function loadCharacterFromCloud(name: string): Promise<Partial<LocalPlayerData> | null> {
   try {

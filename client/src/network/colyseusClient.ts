@@ -18,8 +18,15 @@ export interface LocalPlayerData {
   maxExp: number;
   hp: number;
   maxHp: number;
+  energyShield: number;
+  maxEnergyShield: number;
   mana: number;
   maxMana: number;
+  strength: number;
+  dexterity: number;
+  intelligence: number;
+  armour: number;
+  evasion: number;
   dps: number;
   chaosOrbs: number;
   divineOrbs: number;
@@ -34,11 +41,18 @@ export const defaultPlayerData: LocalPlayerData = {
   level: 1,
   exp: 0,
   maxExp: 100,
-  hp: 250,
-  maxHp: 250,
-  mana: 100,
-  maxMana: 100,
-  dps: 35,
+  hp: 275,
+  maxHp: 275,
+  energyShield: 0,
+  maxEnergyShield: 0,
+  mana: 85,
+  maxMana: 85,
+  strength: 23,
+  dexterity: 23,
+  intelligence: 14,
+  armour: 50,
+  evasion: 65,
+  dps: 45,
   chaosOrbs: 0,
   divineOrbs: 0,
   wisdomScrolls: 5,

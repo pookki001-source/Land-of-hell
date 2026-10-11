@@ -111,6 +111,11 @@ export class MapRoom extends Room<MapState> {
     if (options.exp) player.exp = options.exp;
     if (options.hp) player.hp = options.hp;
     if (options.maxHp) player.maxHp = options.maxHp;
+    if (options.energyShield !== undefined) player.energyShield = options.energyShield;
+    if (options.maxEnergyShield !== undefined) player.maxEnergyShield = options.maxEnergyShield;
+    if (options.strength) player.strength = options.strength;
+    if (options.dexterity) player.dexterity = options.dexterity;
+    if (options.intelligence) player.intelligence = options.intelligence;
     if (options.chaosOrbs) player.chaosOrbs = options.chaosOrbs;
     if (options.divineOrbs) player.divineOrbs = options.divineOrbs;
     if (options.wisdomScrolls) player.wisdomScrolls = options.wisdomScrolls;

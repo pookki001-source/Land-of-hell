@@ -5,6 +5,7 @@ import {
   Zap,
   Sword,
   Users,
+  User,
   Compass,
   MessageSquare,
   Sparkles,
@@ -20,6 +21,7 @@ interface PoEOverlayProps {
   onOpenPortal?: () => void;
   onReturnToTown?: () => void;
   onToggleAuto?: () => void;
+  onSwitchCharacter?: () => void;
 }
 
 export const PoEOverlay: React.FC<PoEOverlayProps> = ({
@@ -29,7 +31,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
   onlineCount,
   onOpenPortal,
   onReturnToTown,
-  onToggleAuto
+  onToggleAuto,
+  onSwitchCharacter
 }) => {
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -198,6 +201,25 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               <Compass size={14} /> Return to Town
             </button>
           )}
+
+          <button
+            onClick={onSwitchCharacter}
+            style={{
+              backgroundColor: "#1c1916",
+              border: "1px solid #4a4034",
+              color: "#c9b99a",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <User size={14} /> Switch Exile
+          </button>
 
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -506,6 +528,11 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
             <div>{hp}</div>
             <div style={{ fontSize: "10px", color: "#f5b7b1" }}>/{maxHp}</div>
             <div style={{ fontSize: "9px", color: "#e6b0aa" }}>LIFE</div>
+            {localPlayer?.maxEnergyShield > 0 && (
+              <div style={{ fontSize: "9px", color: "#85c1e9", marginTop: "2px" }}>
+                ES: {localPlayer.energyShield || 0}
+              </div>
+            )}
           </div>
         </div>
 

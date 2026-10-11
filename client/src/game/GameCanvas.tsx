@@ -441,11 +441,14 @@ function drawPlayer(
   ctx.save();
   const radius = 18;
 
-  // Class colors
+  // Class colors for all 7 PoE core classes
   let classColor = "#e67e22"; // Duelist
-  if (player.characterClass === "Ranger") classColor = "#27ae60";
-  if (player.characterClass === "Witch") classColor = "#8e44ad";
   if (player.characterClass === "Marauder") classColor = "#c0392b";
+  else if (player.characterClass === "Ranger") classColor = "#27ae60";
+  else if (player.characterClass === "Witch") classColor = "#8e44ad";
+  else if (player.characterClass === "Templar") classColor = "#3498db";
+  else if (player.characterClass === "Shadow") classColor = "#16a085";
+  else if (player.characterClass === "Scion") classColor = "#f1c40f";
 
   // Movement direction indicator
   const dx = player.targetX - player.x;

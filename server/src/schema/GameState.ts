@@ -31,8 +31,13 @@ export class Player extends Schema {
   @type("number") maxExp: number = 100;
   @type("number") hp: number = 250;
   @type("number") maxHp: number = 250;
+  @type("number") energyShield: number = 0;
+  @type("number") maxEnergyShield: number = 0;
   @type("number") mana: number = 100;
   @type("number") maxMana: number = 100;
+  @type("number") strength: number = 20;
+  @type("number") dexterity: number = 20;
+  @type("number") intelligence: number = 20;
   @type("number") dps: number = 35;
   @type("boolean") isAuto: boolean = false;
   @type("string") partyId: string = "";
