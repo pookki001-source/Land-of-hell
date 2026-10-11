@@ -3,16 +3,16 @@ import { Room } from "colyseus.js";
 import { sounds } from "../utils/soundEffects";
 import { LocalPlayerData } from "../network/colyseusClient";
 import {
-  renderEnvironment,
-  renderDarkFantasyPlayer,
-  renderDarkFantasyMonster,
-  renderDarkFantasyLoot,
-  renderDarkFantasyPortal,
-  renderDarknessVignette,
-  Particle,
-  BloodDecal
-} from "./darkFantasyRenderer";
-import { assetLoader } from "./assetLoader";
+  worldToIso,
+  isoToWorld,
+  getIsometricDirection,
+  isoSpriteRenderer,
+  drawIsometricTilemap,
+  renderDepthSortedEntities,
+  DepthEntity,
+  applyDiablo2PitchBlackLighting,
+  LightSource
+} from "./isometricEngine";
 
 interface FloatingText {
   id: number;
@@ -22,6 +22,7 @@ interface FloatingText {
   color: string;
   fontSize: number;
   alpha: number;
+  lift: number;
   createdAt: number;
 }
 
@@ -41,12 +42,24 @@ interface SlashEffect {
   color: string;
 }
 
-interface RainDrop {
+interface Particle {
   x: number;
   y: number;
-  speed: number;
-  length: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  color: string;
   alpha: number;
+  decay: number;
+}
+
+interface BloodDecal {
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
+  alpha: number;
+  splats: { dx: number; dy: number; r: number }[];
 }
 
 interface GameCanvasProps {
@@ -68,8 +81,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const slashesRef = useRef<SlashEffect[]>([]);
   const bloodDecalsRef = useRef<BloodDecal[]>([]);
   const particlesRef = useRef<Particle[]>([]);
-  const rainDropsRef = useRef<RainDrop[]>([]);
   const screenShakeRef = useRef<{ intensity: number; endTime: number }>({ intensity: 0, endTime: 0 });
+
+  // Resilient Local Player Simulation in World Coordinates
+  // Guarantees immediate control & smooth rendering even during connection/loading
   const localPlayerSimRef = useRef({
     x: 480,
     y: 350,
@@ -79,22 +94,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     lastTime: performance.now()
   });
 
-  // Initialize rain particles
+  // Preload pre-rendered isometric PNG sprites
   useEffect(() => {
-    const drops: RainDrop[] = [];
-    for (let i = 0; i < 140; i++) {
-      drops.push({
-        x: Math.random() * 2000 - 200,
-        y: Math.random() * 1200 - 200,
-        speed: 12 + Math.random() * 8,
-        length: 10 + Math.random() * 8,
-        alpha: 0.15 + Math.random() * 0.25
-      });
-    }
-    rainDropsRef.current = drops;
-
-    // Preload image sprites and textures
-    assetLoader.preloadAll();
+    isoSpriteRenderer.preloadAll();
   }, []);
 
   // Trigger screen shake utility
@@ -105,74 +107,73 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   };
 
+  // Damage Hit listener from Colyseus room
   useEffect(() => {
     if (!room) return;
 
-    // Listen to damage events from server
     const unsubscribeDamage = room.onMessage("damage_hit", (data: any) => {
       const isCrit = data.isCrit;
       sounds.playHitSound(isCrit);
 
-      // Trigger Screen Shake on hits, extra strong on crits
       triggerScreenShake(isCrit ? 9 : 3.5, isCrit ? 250 : 120);
 
       floatingTextsRef.current.push({
         id: Math.random(),
         text: isCrit ? `CRIT! -${data.damage}` : `-${data.damage}`,
-        x: data.x + (Math.random() * 24 - 12),
-        y: data.y - 20,
+        x: data.x + (Math.random() * 20 - 10),
+        y: data.y,
         color: isCrit ? "#f39c12" : "#ffffff",
-        fontSize: isCrit ? 19 : 13,
+        fontSize: isCrit ? 20 : 13,
         alpha: 1.0,
+        lift: 0,
         createdAt: performance.now()
       });
 
-      // Spawn persistent Blood Decal on the floor
+      // Spawn persistent isometric blood decal
       const splatCount = isCrit ? 8 : 4;
       const splats = [];
       for (let s = 0; s < splatCount; s++) {
         splats.push({
-          dx: (Math.random() - 0.5) * (isCrit ? 50 : 30),
-          dy: (Math.random() - 0.5) * (isCrit ? 35 : 20),
-          r: 2 + Math.random() * (isCrit ? 5 : 3)
+          dx: (Math.random() - 0.5) * (isCrit ? 36 : 22),
+          dy: (Math.random() - 0.5) * (isCrit ? 24 : 14),
+          r: 2 + Math.random() * (isCrit ? 4 : 2.5)
         });
       }
 
       bloodDecalsRef.current.push({
         x: data.x,
         y: data.y,
-        radius: isCrit ? 18 : 10,
+        radius: isCrit ? 16 : 9,
         color: Math.random() > 0.3 ? "#781414" : "#4a0d0d",
         alpha: 0.85,
         splats
       });
 
-      // Keep decals under limit for 60fps performance
       if (bloodDecalsRef.current.length > 70) {
         bloodDecalsRef.current.shift();
       }
 
-      // Add combat slash visual
+      // Combat slash effect
       slashesRef.current.push({
         x: data.x,
         y: data.y,
-        radius: isCrit ? 42 : 26,
+        radius: isCrit ? 40 : 25,
         angle: Math.random() * Math.PI * 2,
         alpha: 1.0,
         color: isCrit ? "#f39c12" : "#e74c3c"
       });
 
-      // Spawn burst particles (Blood droplets & spark embers)
-      const particleCount = isCrit ? 18 : 8;
+      // Blood and spark burst particles
+      const particleCount = isCrit ? 16 : 7;
       for (let p = 0; p < particleCount; p++) {
-        const speed = 2 + Math.random() * (isCrit ? 7 : 4);
+        const speed = 2 + Math.random() * (isCrit ? 6 : 3.5);
         const ang = Math.random() * Math.PI * 2;
         particlesRef.current.push({
           x: data.x,
           y: data.y,
           vx: Math.cos(ang) * speed,
           vy: Math.sin(ang) * speed,
-          radius: 1.5 + Math.random() * 2.5,
+          radius: 1.5 + Math.random() * 2,
           color: isCrit && Math.random() > 0.4 ? "#f1c40f" : "#b01f1f",
           alpha: 1.0,
           decay: 0.04 + Math.random() * 0.04
@@ -185,6 +186,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [room]);
 
+  // Main 2.5D Isometric Render Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -205,29 +207,33 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const height = canvas.height;
       const now = performance.now();
 
-      // Clear Screen with deep atmospheric pitch black
-      ctx.fillStyle = "#080606";
+      // Clear Screen with 100% PITCH BLACK (#000000)
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
 
-      // Update local player simulation & camera position
+      // 1. Update Local Player Simulation & Sync with Server
       const sim = localPlayerSimRef.current;
       const dt = Math.min((now - sim.lastTime) / 1000, 0.1);
       sim.lastTime = now;
 
-      let cameraX = sim.x;
-      let cameraY = sim.y;
+      let playerWorldX = sim.x;
+      let playerWorldY = sim.y;
+      let playerTargetX = sim.targetX;
+      let playerTargetY = sim.targetY;
 
       if (room && room.state && room.state.players) {
-        const localPlayer = room.state.players.get(room.sessionId);
-        if (localPlayer) {
-          sim.x = localPlayer.x;
-          sim.y = localPlayer.y;
-          if (localPlayer.targetX !== undefined) sim.targetX = localPlayer.targetX;
-          if (localPlayer.targetY !== undefined) sim.targetY = localPlayer.targetY;
-          cameraX = localPlayer.x;
-          cameraY = localPlayer.y;
+        const serverPlayer = room.state.players.get(room.sessionId);
+        if (serverPlayer) {
+          sim.x = serverPlayer.x;
+          sim.y = serverPlayer.y;
+          if (serverPlayer.targetX !== undefined) sim.targetX = serverPlayer.targetX;
+          if (serverPlayer.targetY !== undefined) sim.targetY = serverPlayer.targetY;
+          playerWorldX = serverPlayer.x;
+          playerWorldY = serverPlayer.y;
+          playerTargetX = sim.targetX;
+          playerTargetY = sim.targetY;
         } else {
-          // If server player not found in room yet, simulate movement locally
+          // Local interpolation
           const dx = sim.targetX - sim.x;
           const dy = sim.targetY - sim.y;
           const dist = Math.hypot(dx, dy);
@@ -236,11 +242,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             sim.x += (dx / dist) * step;
             sim.y += (dy / dist) * step;
           }
-          cameraX = sim.x;
-          cameraY = sim.y;
+          playerWorldX = sim.x;
+          playerWorldY = sim.y;
         }
       } else {
-        // If room is null or connecting, simulate movement locally
+        // Offline / Syncing local interpolation
         const dx = sim.targetX - sim.x;
         const dy = sim.targetY - sim.y;
         const dist = Math.hypot(dx, dy);
@@ -249,11 +255,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           sim.x += (dx / dist) * step;
           sim.y += (dy / dist) * step;
         }
-        cameraX = sim.x;
-        cameraY = sim.y;
+        playerWorldX = sim.x;
+        playerWorldY = sim.y;
       }
 
-      // Calculate screen shake
+      // 2. Isometric Camera: Focus on Player's Isometric Position
+      const playerIso = worldToIso(playerWorldX, playerWorldY);
+      const cameraIsoX = playerIso.x;
+      const cameraIsoY = playerIso.y;
+
+      // Screen Shake
       let shakeOffsetX = 0;
       let shakeOffsetY = 0;
       if (screenShakeRef.current.endTime > now) {
@@ -263,151 +274,384 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         shakeOffsetY = (Math.random() - 0.5) * curIntensity * 2;
       }
 
-      const offsetX = width / 2 - cameraX + shakeOffsetX;
-      const offsetY = height / 2 - cameraY + shakeOffsetY;
+      // Center of screen transform
+      const screenCenterX = width / 2;
+      const screenCenterY = height / 2;
 
       ctx.save();
-      ctx.translate(offsetX, offsetY);
+      ctx.translate(
+        screenCenterX - cameraIsoX + shakeOffsetX,
+        screenCenterY - cameraIsoY + shakeOffsetY
+      );
 
-      // ================= 1. ENVIRONMENT / BIOMES =================
-      renderEnvironment(ctx, zoneType, now);
+      // ================= 3. ISOMETRIC RHOMBUS TILEMAP =================
+      drawIsometricTilemap(ctx, cameraIsoX, cameraIsoY, width, height, zoneType);
 
-      // ================= 2. BLOOD DECALS ON GROUND =================
+      // ================= 4. GROUND DECALS (BLOOD & SEAMS) =================
       bloodDecalsRef.current.forEach((decal) => {
+        const iso = worldToIso(decal.x, decal.y);
         ctx.save();
         ctx.globalAlpha = decal.alpha;
         ctx.fillStyle = decal.color;
         ctx.beginPath();
-        ctx.arc(decal.x, decal.y, decal.radius, 0, Math.PI * 2);
+        // Flattened 2:1 ellipse on isometric floor
+        ctx.ellipse(iso.x, iso.y, decal.radius * 1.5, decal.radius * 0.75, 0, 0, Math.PI * 2);
         ctx.fill();
 
         decal.splats.forEach((sp) => {
           ctx.beginPath();
-          ctx.arc(decal.x + sp.dx, decal.y + sp.dy, sp.r, 0, Math.PI * 2);
+          ctx.ellipse(iso.x + sp.dx * 1.2, iso.y + sp.dy * 0.6, sp.r * 1.3, sp.r * 0.65, 0, 0, Math.PI * 2);
           ctx.fill();
         });
         ctx.restore();
       });
 
-      // ================= 3. PORTALS =================
-      if (room && room.state) {
-        if (zoneType === "town" && room.state.portals) {
-          room.state.portals.forEach((portal: any) => {
-            renderDarkFantasyPortal(ctx, portal.x, portal.y, portal.mapName, "#9b59b6", now);
+      // ================= 5. MOVEMENT RIPPLES =================
+      ripplesRef.current = ripplesRef.current.filter((ripple) => {
+        const iso = worldToIso(ripple.x, ripple.y);
+        ctx.save();
+        ctx.strokeStyle = `rgba(240, 223, 182, ${ripple.alpha})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(iso.x, iso.y, ripple.radius * 1.8, ripple.radius * 0.9, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        ripple.radius += 1.2;
+        ripple.alpha -= 0.05;
+        return ripple.alpha > 0;
+      });
+
+      // ================= 6. GATHER & DEPTH-SORT ALL ENTITIES =================
+      const depthEntities: DepthEntity[] = [];
+
+      // Secondary light sources to feed into the pitch black lighting mask
+      const secondaryLights: LightSource[] = [];
+
+      // A. TOWN HUB INTERACTIVE OBJECTS (LIONEYE'S WATCH)
+      if (zoneType === "town") {
+        // 1. Waypoint (Return Obelisk) situated at (400, 350)
+        const wpIso = worldToIso(400, 350);
+        depthEntities.push({
+          depth: wpIso.y,
+          render: (c) => {
+            isoSpriteRenderer.drawSprite(c, "waypoint", "default", wpIso.x, wpIso.y, 0.88);
+
+            // Ground Rune Ring
+            const pulse = 22 + Math.sin(now / 300) * 3;
+            c.save();
+            c.strokeStyle = "rgba(46, 204, 113, 0.75)";
+            c.lineWidth = 2;
+            c.beginPath();
+            c.ellipse(wpIso.x, wpIso.y + 4, pulse * 1.8, pulse * 0.9, 0, 0, Math.PI * 2);
+            c.stroke();
+
+            // Label
+            c.fillStyle = "#d4ac0d";
+            c.font = "bold 11px 'Cinzel', serif";
+            c.textAlign = "center";
+            c.shadowColor = "#000000";
+            c.shadowBlur = 6;
+            c.fillText("LIONEYE'S WAYPOINT", wpIso.x, wpIso.y + 30);
+            c.restore();
+          }
+        });
+        // Register Waypoint Emerald Light
+        secondaryLights.push({
+          screenX: screenCenterX - cameraIsoX + wpIso.x,
+          screenY: screenCenterY - cameraIsoY + wpIso.y,
+          radius: 190 + Math.sin(now / 150) * 8
+        });
+
+        // 2. Medieval Campfire situated at (480, 480)
+        const fireIso = worldToIso(480, 480);
+        const fireFrame = "frame_" + (Math.floor(now / 140) % 5);
+        depthEntities.push({
+          depth: fireIso.y,
+          render: (c) => {
+            isoSpriteRenderer.drawSprite(c, "campfire", fireFrame, fireIso.x, fireIso.y, 1.25);
+          }
+        });
+        // Register Campfire Radiant Orange Light
+        secondaryLights.push({
+          screenX: screenCenterX - cameraIsoX + fireIso.x,
+          screenY: screenCenterY - cameraIsoY + fireIso.y,
+          radius: 250 + Math.sin(now / 95) * 12
+        });
+
+        // 3. Stash Chest situated at (320, 260)
+        const stashIso = worldToIso(320, 260);
+        depthEntities.push({
+          depth: stashIso.y,
+          render: (c) => {
+            isoSpriteRenderer.drawSprite(c, "chest", "default", stashIso.x, stashIso.y, 0.52);
+            c.save();
+            c.fillStyle = "#e0cfb3";
+            c.font = "bold 10px 'Cinzel', serif";
+            c.textAlign = "center";
+            c.shadowColor = "#000000";
+            c.shadowBlur = 5;
+            c.fillText("STASH", stashIso.x, stashIso.y + 22);
+            c.restore();
+          }
+        });
+
+        // 4. Strand Town Portal situated at (750, 350)
+        const portalIso = worldToIso(750, 350);
+        depthEntities.push({
+          depth: portalIso.y,
+          render: (c) => {
+            isoSpriteRenderer.drawSprite(c, "portal", "default", portalIso.x, portalIso.y, 0.65);
+            c.save();
+            c.fillStyle = "#bb8fce";
+            c.font = "bold 11px 'Cinzel', serif";
+            c.textAlign = "center";
+            c.shadowColor = "#000000";
+            c.shadowBlur = 6;
+            c.fillText("THE STRAND (ACT 1)", portalIso.x, portalIso.y + 24);
+            c.restore();
+          }
+        });
+        secondaryLights.push({
+          screenX: screenCenterX - cameraIsoX + portalIso.x,
+          screenY: screenCenterY - cameraIsoY + portalIso.y,
+          radius: 170 + Math.sin(now / 120) * 8
+        });
+
+        // Dynamic Portals from Server
+        if (room && room.state && room.state.portals) {
+          room.state.portals.forEach((p: any) => {
+            const pIso = worldToIso(p.x, p.y);
+            depthEntities.push({
+              depth: pIso.y,
+              render: (c) => {
+                isoSpriteRenderer.drawSprite(c, "portal", "default", pIso.x, pIso.y, 0.6);
+                c.save();
+                c.fillStyle = "#9b59b6";
+                c.font = "bold 10px 'Cinzel', serif";
+                c.textAlign = "center";
+                c.fillText(p.mapName || "Portal", pIso.x, pIso.y + 22);
+                c.restore();
+              }
+            });
+            secondaryLights.push({
+              screenX: screenCenterX - cameraIsoX + pIso.x,
+              screenY: screenCenterY - cameraIsoY + pIso.y,
+              radius: 150
+            });
           });
-        } else if (zoneType === "map" && room.state.portalX !== undefined) {
-          renderDarkFantasyPortal(
-            ctx,
-            room.state.portalX,
-            room.state.portalY,
-            "Return to Lioneye's Watch",
-            "#3498db",
-            now
-          );
         }
       }
 
-      // ================= 4. MONSTERS =================
-      if (zoneType === "map" && room && room.state && room.state.monsters) {
-        room.state.monsters.forEach((m: any) => {
-          renderDarkFantasyMonster(ctx, m, now);
-        });
+      // B. COMBAT MAP OBJECTS (PORTALS, MONSTERS, LOOT)
+      if (zoneType === "map" && room && room.state) {
+        // Return Portal
+        if (room.state.portalX !== undefined && room.state.portalY !== undefined) {
+          const retIso = worldToIso(room.state.portalX, room.state.portalY);
+          depthEntities.push({
+            depth: retIso.y,
+            render: (c) => {
+              isoSpriteRenderer.drawSprite(c, "portal", "default", retIso.x, retIso.y, 0.65);
+              c.save();
+              c.fillStyle = "#3498db";
+              c.font = "bold 11px 'Cinzel', serif";
+              c.textAlign = "center";
+              c.fillText("Return to Town", retIso.x, retIso.y + 24);
+              c.restore();
+            }
+          });
+          secondaryLights.push({
+            screenX: screenCenterX - cameraIsoX + retIso.x,
+            screenY: screenCenterY - cameraIsoY + retIso.y,
+            radius: 180
+          });
+        }
+
+        // Monsters with Fog of War Check
+        if (room.state.monsters) {
+          room.state.monsters.forEach((m: any) => {
+            const mIso = worldToIso(m.x, m.y);
+            // Distance in screen space to player
+            const distToPlayer = Math.hypot(mIso.x - playerIso.x, mIso.y - playerIso.y);
+            // Fog of War: Only render monsters within light radius + 80
+            if (distToPlayer > 460) return;
+
+            const isBoss = m.monsterType === "boss";
+            const dir = (m.vx || 0) < 0 ? "down_left" : "down_right";
+            const spriteKey = isBoss ? "boss" : "skeleton";
+            const scale = isBoss ? 0.58 : 0.48;
+
+            depthEntities.push({
+              depth: mIso.y,
+              render: (c) => {
+                isoSpriteRenderer.drawSprite(c, spriteKey, dir, mIso.x, mIso.y, scale);
+
+                // Health Bar
+                const hpRatio = Math.max(0, Math.min(1, m.hp / (m.maxHp || 1)));
+                const barW = isBoss ? 90 : 46;
+                const barH = isBoss ? 6 : 4;
+                const barY = mIso.y - (isBoss ? 130 : 90);
+
+                c.save();
+                c.fillStyle = "#000000";
+                c.fillRect(mIso.x - barW / 2 - 1, barY - 1, barW + 2, barH + 2);
+                c.fillStyle = isBoss ? "#c0392b" : "#922b21";
+                c.fillRect(mIso.x - barW / 2, barY, barW * hpRatio, barH);
+                c.strokeStyle = isBoss ? "#e74c3c" : "#566573";
+                c.lineWidth = 1;
+                c.strokeRect(mIso.x - barW / 2 - 1, barY - 1, barW + 2, barH + 2);
+
+                c.font = isBoss ? "bold 12px 'Cinzel', serif" : "bold 9px 'Cinzel', serif";
+                c.textAlign = "center";
+                c.fillStyle = isBoss ? "#e74c3c" : "#ecf0f1";
+                c.shadowColor = "#000000";
+                c.shadowBlur = 4;
+                c.fillText(m.name || "Dread Fiend", mIso.x, barY - 5);
+                c.restore();
+              }
+            });
+          });
+        }
+
+        // Loot with Fog of War Check
+        if (room.state.loot) {
+          room.state.loot.forEach((loot: any) => {
+            const lIso = worldToIso(loot.x, loot.y);
+            const dist = Math.hypot(lIso.x - playerIso.x, lIso.y - playerIso.y);
+            if (dist > 460) return;
+
+            const rarity = loot.rarity || "normal";
+            let color = "#c8c8c8";
+            if (rarity === "unique") color = "#af601a";
+            else if (rarity === "rare") color = "#ffff77";
+            else if (rarity === "magic") color = "#8888ff";
+
+            depthEntities.push({
+              depth: lIso.y,
+              render: (c) => {
+                c.save();
+                // Vertical light beam
+                const grad = c.createLinearGradient(lIso.x, lIso.y, lIso.x, lIso.y - 120);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, "transparent");
+                c.strokeStyle = grad;
+                c.lineWidth = 2.5;
+                c.beginPath();
+                c.moveTo(lIso.x, lIso.y);
+                c.lineTo(lIso.x, lIso.y - 120);
+                c.stroke();
+
+                // Loot Nameplate box
+                c.font = "bold 10px 'Cinzel', serif";
+                const tw = c.measureText(loot.name).width;
+                const bw = tw + 14;
+                const bh = 18;
+                c.fillStyle = "rgba(10, 8, 8, 0.92)";
+                c.fillRect(lIso.x - bw / 2, lIso.y - 20, bw, bh);
+                c.strokeStyle = color;
+                c.lineWidth = 1;
+                c.strokeRect(lIso.x - bw / 2, lIso.y - 20, bw, bh);
+
+                c.fillStyle = color;
+                c.textAlign = "center";
+                c.fillText(loot.name, lIso.x, lIso.y - 7);
+                c.restore();
+              }
+            });
+          });
+        }
       }
 
-      // ================= 5. LOOT DROPS WITH POE LOOT BEAMS =================
-      if (zoneType === "map" && room && room.state && room.state.loot) {
-        room.state.loot.forEach((loot: any) => {
-          renderDarkFantasyLoot(ctx, loot, now);
-        });
-      }
-
-      // ================= 6. PLAYERS =================
+      // C. PLAYERS (SERVER & LOCAL)
       let renderedLocalPlayer = false;
 
+      const renderPlayerEntity = (p: any, isLocal: boolean) => {
+        const iso = worldToIso(p.x, p.y);
+        const dx = (p.targetX ?? p.x) - p.x;
+        const dy = (p.targetY ?? p.y) - p.y;
+        const isMoving = Math.hypot(dx, dy) > 4;
+        const dir = isMoving ? getIsometricDirection(dx, dy) : "down_right";
+
+        depthEntities.push({
+          depth: iso.y,
+          render: (c) => {
+            // Local Selection Ring beneath feet
+            if (isLocal) {
+              const ringPulse = 20 + Math.sin(now / 320) * 2;
+              c.save();
+              c.strokeStyle = "rgba(241, 196, 15, 0.85)";
+              c.lineWidth = 1.8;
+              c.beginPath();
+              c.ellipse(iso.x, iso.y + 4, ringPulse * 1.5, ringPulse * 0.75, 0, 0, Math.PI * 2);
+              c.stroke();
+              c.restore();
+            }
+
+            // Draw Pre-rendered Isometric Knight
+            isoSpriteRenderer.drawSprite(c, "knight", dir, iso.x, iso.y, 0.72);
+
+            // Nameplate & Level
+            c.save();
+            c.font = "bold 11px 'Cinzel', serif";
+            c.textAlign = "center";
+            c.shadowColor = "#000000";
+            c.shadowBlur = 5;
+            c.fillStyle = isLocal ? "#f1c40f" : "#ecf0f1";
+            c.fillText(p.name || "Exile", iso.x, iso.y - 125);
+
+            c.font = "9px 'Cinzel', serif";
+            c.fillStyle = isLocal ? "#d4ac0d" : "#95a5a6";
+            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Duelist"}`, iso.x, iso.y - 113);
+            c.restore();
+          }
+        });
+      };
+
       if (room && room.state && room.state.players) {
-        room.state.players.forEach((player: any) => {
-          const isLocal = player.id === room.sessionId;
+        room.state.players.forEach((p: any) => {
+          const isLocal = p.id === room.sessionId;
           if (isLocal) renderedLocalPlayer = true;
-          renderDarkFantasyPlayer(ctx, player, isLocal, now);
+          renderPlayerEntity(p, isLocal);
         });
       }
 
-      // 100% VISIBILITY GUARANTEE: Always render local player even during connection/loading
+      // Guarantee local player is ALWAYS visible and controllable
       if (!renderedLocalPlayer) {
         const localHero = {
           id: "local_hero",
           name: localPlayerDataProp?.name || "Exile",
           characterClass: localPlayerDataProp?.characterClass || "Duelist",
           level: localPlayerDataProp?.level || 1,
-          x: sim.x,
-          y: sim.y,
-          targetX: sim.targetX,
-          targetY: sim.targetY,
-          hp: localPlayerDataProp?.hp ?? 100,
-          maxHp: localPlayerDataProp?.maxHp ?? 100
+          x: playerWorldX,
+          y: playerWorldY,
+          targetX: playerTargetX,
+          targetY: playerTargetY
         };
-        renderDarkFantasyPlayer(ctx, localHero, true, now);
+        renderPlayerEntity(localHero, true);
       }
+
+      // Render all entities in Y-sorted depth order!
+      renderDepthSortedEntities(ctx, depthEntities);
 
       // ================= 7. COMBAT SLASH VISUALS =================
       slashesRef.current = slashesRef.current.filter((slash) => {
+        const iso = worldToIso(slash.x, slash.y);
         ctx.save();
         ctx.strokeStyle = slash.color;
         ctx.globalAlpha = Math.max(0, slash.alpha);
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3.5;
         ctx.beginPath();
-        ctx.arc(slash.x, slash.y, slash.radius, slash.angle, slash.angle + Math.PI * 0.85);
+        ctx.ellipse(iso.x, iso.y - 40, slash.radius * 1.5, slash.radius * 0.75, slash.angle, 0, Math.PI * 0.9);
         ctx.stroke();
-
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(slash.x, slash.y, slash.radius * 0.95, slash.angle, slash.angle + Math.PI * 0.7);
-        ctx.stroke();
-
         ctx.restore();
 
         slash.alpha -= 0.09;
         return slash.alpha > 0;
       });
 
-      // ================= 8. DYNAMIC PARTICLES =================
-      particlesRef.current = particlesRef.current.filter((p) => {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.fillStyle = p.color;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.94;
-        p.vy *= 0.94;
-        p.alpha -= p.decay;
-        return p.alpha > 0;
-      });
-
-      // ================= 9. CLICK MOVEMENT RIPPLES =================
-      ripplesRef.current = ripplesRef.current.filter((ripple) => {
-        ctx.save();
-        ctx.strokeStyle = `rgba(240, 223, 182, ${ripple.alpha})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-
-        ripple.radius += 1.4;
-        ripple.alpha -= 0.055;
-        return ripple.alpha > 0;
-      });
-
-      // ================= 10. FLOATING DAMAGE TEXT =================
+      // ================= 8. FLOATING DAMAGE TEXT =================
       floatingTextsRef.current = floatingTextsRef.current.filter((ft) => {
+        const iso = worldToIso(ft.x, ft.y);
         ctx.save();
         ctx.font = `bold ${ft.fontSize}px 'Cinzel', serif`;
         ctx.fillStyle = ft.color;
@@ -415,39 +659,49 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.shadowBlur = 6;
         ctx.globalAlpha = Math.max(0, ft.alpha);
         ctx.textAlign = "center";
-        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.fillText(ft.text, iso.x, iso.y - 70 - ft.lift);
         ctx.restore();
 
-        ft.y -= 0.85;
+        ft.lift += 0.9;
         ft.alpha -= 0.022;
         return ft.alpha > 0;
       });
 
-      ctx.restore(); // Restore camera offset
-
-      // ================= 11. AMBIENT RAIN EFFECT (SCREEN SPACE) =================
-      if (zoneType === "map") {
+      // ================= 9. SPARKS & BURST PARTICLES =================
+      particlesRef.current = particlesRef.current.filter((p) => {
+        const iso = worldToIso(p.x, p.y);
         ctx.save();
-        ctx.strokeStyle = "rgba(174, 214, 241, 0.28)";
-        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
         ctx.beginPath();
-        rainDropsRef.current.forEach((drop) => {
-          ctx.moveTo(drop.x, drop.y);
-          ctx.lineTo(drop.x - drop.length * 0.4, drop.y + drop.length);
-
-          drop.y += drop.speed;
-          drop.x -= drop.speed * 0.4;
-          if (drop.y > height) {
-            drop.y = -20;
-            drop.x = Math.random() * (width + 400);
-          }
-        });
-        ctx.stroke();
+        ctx.arc(iso.x, iso.y - 30, p.radius, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
-      }
 
-      // ================= 12. DYNAMIC TORCHLIGHT & DARKNESS VIGNETTE =================
-      renderDarknessVignette(ctx, width, height);
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.93;
+        p.vy *= 0.93;
+        p.alpha -= p.decay;
+        return p.alpha > 0;
+      });
+
+      ctx.restore(); // Restore camera translation
+
+      // ================= 10. DIABLO 2 TRUE PITCH-BLACK LIGHTING & TORCH FLICKER =================
+      // Screen space player light position is dead-center
+      const playerScreenX = screenCenterX + shakeOffsetX;
+      const playerScreenY = screenCenterY + shakeOffsetY;
+
+      applyDiablo2PitchBlackLighting(
+        ctx,
+        width,
+        height,
+        playerScreenX,
+        playerScreenY,
+        now,
+        secondaryLights
+      );
 
       animationFrameId = requestAnimationFrame(render);
     };
@@ -460,7 +714,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [room, zoneType, localPlayerDataProp]);
 
-  // Click Handler (Click-to-Move, Attack Monster, Pick Up Loot, Enter Portal)
+  // Click Handler in Isometric Projection Space
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
 
@@ -469,41 +723,48 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    let cameraX = localPlayerSimRef.current.x;
-    let cameraY = localPlayerSimRef.current.y;
+    // Camera is centered on player's isometric coordinates
+    const sim = localPlayerSimRef.current;
+    let pWorldX = sim.x;
+    let pWorldY = sim.y;
     if (room && room.state && room.state.players) {
-      const localPlayer = room.state.players.get(room.sessionId);
-      if (localPlayer) {
-        cameraX = localPlayer.x;
-        cameraY = localPlayer.y;
+      const serverPlayer = room.state.players.get(room.sessionId);
+      if (serverPlayer) {
+        pWorldX = serverPlayer.x;
+        pWorldY = serverPlayer.y;
       }
     }
-    const worldX = clickX - (canvas.width / 2 - cameraX);
-    const worldY = clickY - (canvas.height / 2 - cameraY);
+    const playerIso = worldToIso(pWorldX, pWorldY);
+    const cameraIsoX = playerIso.x;
+    const cameraIsoY = playerIso.y;
 
-    // 1. Check Waypoint / Portal Interaction in Town
+    // Convert Screen Click to Isometric World Coordinates
+    const screenRelX = clickX - canvas.width / 2 + cameraIsoX;
+    const screenRelY = clickY - canvas.height / 2 + cameraIsoY;
+    const worldPos = isoToWorld(screenRelX, screenRelY);
+    const worldX = worldPos.x;
+    const worldY = worldPos.y;
+
+    // 1. Waypoint & Portals in Town
     if (zoneType === "town") {
-      // Lioneye's Waypoint is situated at (400, 350)
-      const distToWaypoint = Math.hypot(400 - worldX, 350 - worldY);
-      if (distToWaypoint < 80) {
+      // Lioneye's Waypoint at (400, 350)
+      if (Math.hypot(400 - worldX, 350 - worldY) < 90) {
         sounds.playPortalSound();
         if (onEnterPortal) onEnterPortal("portal_strand");
         return;
       }
 
-      // Strand Portal is situated at (750, 350)
-      const distToTownPortal = Math.hypot(750 - worldX, 350 - worldY);
-      if (distToTownPortal < 80) {
+      // Strand Portal at (750, 350)
+      if (Math.hypot(750 - worldX, 350 - worldY) < 90) {
         sounds.playPortalSound();
         if (onEnterPortal) onEnterPortal("portal_strand");
         return;
       }
 
-      // Check dynamic town portals if present on server
+      // Dynamic Portals
       if (room && room.state && room.state.portals) {
         for (const [id, portal] of (room.state.portals as any).entries()) {
-          const dist = Math.hypot(portal.x - worldX, portal.y - worldY);
-          if (dist < 60) {
+          if (Math.hypot(portal.x - worldX, portal.y - worldY) < 70) {
             sounds.playPortalSound();
             if (onEnterPortal) onEnterPortal(portal.id, portal.partyId);
             return;
@@ -511,10 +772,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
     } else if (zoneType === "map") {
-      // Return portal in combat map
+      // Return Portal in Map
       if (room && room.state && room.state.portalX !== undefined) {
-        const dist = Math.hypot(room.state.portalX - worldX, room.state.portalY - worldY);
-        if (dist < 60) {
+        if (Math.hypot(room.state.portalX - worldX, room.state.portalY - worldY) < 70) {
           sounds.playPortalSound();
           if (onEnterPortal) onEnterPortal("return_to_town");
           return;
@@ -522,14 +782,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // 2. Check Loot Click
+    // 2. Loot Click in Map
     if (zoneType === "map" && room && room.state && room.state.loot) {
       for (const [id, loot] of (room.state.loot as any).entries()) {
         if (
-          worldX >= loot.x - 70 &&
-          worldX <= loot.x + 70 &&
-          worldY >= loot.y - 25 &&
-          worldY <= loot.y + 25
+          worldX >= loot.x - 60 &&
+          worldX <= loot.x + 60 &&
+          worldY >= loot.y - 40 &&
+          worldY <= loot.y + 40
         ) {
           sounds.playLootTink(loot.name.includes("Divine") || loot.name.includes("Mirror"));
           room.send("pickup_loot", { lootId: id });
@@ -538,11 +798,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // 3. Check Monster Click (Manual attack)
+    // 3. Monster Click (Manual attack) in Map
     if (zoneType === "map" && room && room.state && room.state.monsters) {
       for (const [id, monster] of (room.state.monsters as any).entries()) {
-        const dist = Math.hypot(monster.x - worldX, monster.y - worldY);
-        if (dist < 38) {
+        if (Math.hypot(monster.x - worldX, monster.y - worldY) < 48) {
           localPlayerSimRef.current.targetX = monster.x;
           localPlayerSimRef.current.targetY = monster.y;
           room.send("attack_monster", { monsterId: id });
@@ -552,7 +811,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // 4. Responsive Local Click-to-Move
+    // 4. Responsive Click-to-Move
     localPlayerSimRef.current.targetX = worldX;
     localPlayerSimRef.current.targetY = worldY;
 
@@ -563,7 +822,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       alpha: 1.0
     });
 
-    // Send move to room if connected
     if (room) {
       try {
         room.send("move", { x: Math.round(worldX), y: Math.round(worldY) });
@@ -585,7 +843,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         width: "100%",
         height: "100%",
         cursor: "crosshair",
-        backgroundColor: "#080606"
+        backgroundColor: "#000000"
       }}
     />
   );
