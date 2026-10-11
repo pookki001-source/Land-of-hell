@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
+app.get(["/", "/healthz"], (req, res) => {
   res.json({
     status: "online",
     game: "Land of Hell: Idle Online Server",
