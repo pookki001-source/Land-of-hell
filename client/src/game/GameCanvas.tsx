@@ -24,6 +24,15 @@ import {
 // Global Camera Zoom factor for ARPG perspective (1.5x - 2.0x)
 export const CAMERA_ZOOM = 1.6;
 
+// Town layout: everything is arranged around the campfire so scene and click hit-tests agree.
+const TOWN = {
+  fire: [480, 420],
+  waypoint: [380, 320],
+  stash: [350, 470],
+  portal: [610, 370],
+  npc: [470, 500]
+} as const;
+
 interface FloatingText {
   id: number;
   text: string;
@@ -405,16 +414,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // A. TOWN HUB INTERACTIVE OBJECTS (LIONEYE'S WATCH)
       if (zoneType === "town") {
         // 1. Fortified Camp Palisades (Sharpened Timber Ramparts)
-        const palisadePosts = [
-          { wx: 180, wy: 120 }, { wx: 240, wy: 120 }, { wx: 300, wy: 120 },
-          { wx: 360, wy: 120 }, { wx: 420, wy: 120 }, { wx: 480, wy: 120 },
-          { wx: 540, wy: 120 }, { wx: 600, wy: 120 }, { wx: 660, wy: 120 },
-          { wx: 160, wy: 180 }, { wx: 160, wy: 240 }, { wx: 160, wy: 300 },
-          { wx: 160, wy: 360 }, { wx: 160, wy: 420 }, { wx: 160, wy: 480 },
-          { wx: 160, wy: 540 }, { wx: 160, wy: 600 },
-          { wx: 220, wy: 640 }, { wx: 300, wy: 640 }, { wx: 380, wy: 640 },
-          { wx: 620, wy: 640 }, { wx: 700, wy: 640 }, { wx: 780, wy: 640 }
-        ];
+        const palisadePosts: { wx: number; wy: number }[] = [];
+        const [x0, x1, y0, y1] = [200, 760, 200, 640];
+        // Back walls solid; front walls leave a wide gate so the camera view stays open.
+        for (let w = x0; w <= x1; w += 16) {
+          palisadePosts.push({ wx: w, wy: y0 });
+          if (w < x0 + 140 || w > x1 - 140) palisadePosts.push({ wx: w, wy: y1 });
+        }
+        for (let w = y0; w <= y1; w += 16) {
+          palisadePosts.push({ wx: x0, wy: w });
+          if (w < y0 + 110 || w > y1 - 110) palisadePosts.push({ wx: x1, wy: w });
+        }
         palisadePosts.forEach((post) => {
           const pIso = worldToIso(post.wx, post.wy);
           depthEntities.push({
@@ -455,10 +465,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // 2. Perimeter Watch Torches with Dynamic Flickering Flame
         const campTorches = [
-          { wx: 220, wy: 140 },
-          { wx: 620, wy: 140 },
-          { wx: 180, wy: 380 },
-          { wx: 680, wy: 560 }
+          { wx: 220, wy: 220 },
+          { wx: 740, wy: 220 },
+          { wx: 220, wy: 620 },
+          { wx: 740, wy: 620 }
         ];
         campTorches.forEach((torch, tIdx) => {
           const tIso = worldToIso(torch.wx, torch.wy);
@@ -513,9 +523,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // 3. Supply Crates & Refugee Survival Tents near Stash
         const campCrates = [
-          { wx: 260, wy: 240, scale: 1 },
-          { wx: 360, wy: 210, scale: 0.9 },
-          { wx: 275, wy: 220, scale: 0.8 }
+          { wx: 290, wy: 450, scale: 1 },
+          { wx: 305, wy: 495, scale: 0.9 },
+          { wx: 275, wy: 480, scale: 0.8 }
         ];
         campCrates.forEach((crate) => {
           const cIso = worldToIso(crate.wx, crate.wy);
@@ -547,7 +557,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
 
         // Refugee Weather-beaten Canvas Tent at (210, 200)
-        const tentIso = worldToIso(210, 200);
+        const tentIso = worldToIso(280, 280);
         depthEntities.push({
           depth: tentIso.y,
           render: (c) => {
@@ -584,14 +594,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
 
         // 4. Waypoint (Return Obelisk) situated at (400, 350)
-        const wpIso = worldToIso(400, 350);
+        const wpIso = worldToIso(...TOWN.waypoint);
         depthEntities.push({
           depth: wpIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "waypoint", "default", wpIso.x, wpIso.y, 0.22);
+            isoSpriteRenderer.drawSprite(c, "waypoint", "default", wpIso.x, wpIso.y, 0.15);
 
             // Ground Rune Ring
-            const pulse = 24 + Math.sin(now / 350) * 3;
+            const pulse = 16 + Math.sin(now / 350) * 2;
             c.save();
             c.strokeStyle = "rgba(46, 204, 113, 0.55)";
             c.lineWidth = 2;
@@ -605,18 +615,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.textAlign = "center";
             c.shadowColor = "#000000";
             c.shadowBlur = 8;
-            c.fillText("LIONEYE'S WAYPOINT", wpIso.x, wpIso.y + 26);
+            c.fillText("LIONEYE'S WAYPOINT", wpIso.x, wpIso.y + 18);
             c.restore();
           }
         });
         secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 220 + Math.sin(now / 150) * 8));
 
         // 5. Medieval Campfire situated at (480, 480)
-        const fireIso = worldToIso(480, 480);
+        const fireIso = worldToIso(...TOWN.fire);
         depthEntities.push({
           depth: fireIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "campfire", "default", fireIso.x, fireIso.y, 0.17);
+            isoSpriteRenderer.drawSprite(c, "campfire", "default", fireIso.x, fireIso.y, 0.13);
 
             // Animated rising embers and flame glow
             c.save();
@@ -635,28 +645,28 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         secondaryLights.push(toScreenLight(fireIso.x, fireIso.y, 270 + Math.sin(now / 95) * 14));
 
         // 6. Stash Chest situated at (320, 260)
-        const stashIso = worldToIso(320, 260);
+        const stashIso = worldToIso(...TOWN.stash);
         depthEntities.push({
           depth: stashIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "chest", "default", stashIso.x, stashIso.y, 0.14);
+            isoSpriteRenderer.drawSprite(c, "chest", "default", stashIso.x, stashIso.y, 0.10);
             c.save();
             c.fillStyle = "#e0cfb3";
             c.font = "bold 10px 'Cinzel', serif";
             c.textAlign = "center";
             c.shadowColor = "#000000";
             c.shadowBlur = 6;
-            c.fillText("STASH (CLICK)", stashIso.x, stashIso.y + 22);
+            c.fillText("STASH (CLICK)", stashIso.x, stashIso.y + 16);
             c.restore();
           }
         });
 
         // 7. NPC Tarkleigh situated at (580, 290)
-        const tarkIso = worldToIso(580, 290);
+        const tarkIso = worldToIso(...TOWN.npc);
         depthEntities.push({
           depth: tarkIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "knight", "down_left", tarkIso.x, tarkIso.y, 0.95);
+            isoSpriteRenderer.drawSprite(c, "knight", "down_left", tarkIso.x, tarkIso.y, 0.45);
 
             c.save();
             const pulse = Math.sin(now / 220) * 3;
@@ -665,47 +675,47 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.shadowColor = "#f1c40f";
             c.shadowBlur = 10;
             c.beginPath();
-            c.arc(tarkIso.x, tarkIso.y - 148 + pulse, 11, 0, Math.PI * 2);
+            c.arc(tarkIso.x, tarkIso.y - 86 + pulse, 9, 0, Math.PI * 2);
             c.fill();
 
             c.fillStyle = "#000000";
             c.font = "bold 13px 'Cinzel', serif";
             c.textAlign = "center";
             c.textBaseline = "middle";
-            c.fillText("!", tarkIso.x, tarkIso.y - 147 + pulse);
+            c.fillText("!", tarkIso.x, tarkIso.y - 85 + pulse);
 
             // Gothic Nameplate
             c.shadowBlur = 6;
             c.shadowColor = "#000000";
             c.font = "bold 12px 'Cinzel', serif";
             c.fillStyle = "#f5e6ca";
-            c.fillText("TARKLEIGH", tarkIso.x, tarkIso.y - 124);
+            c.fillText("TARKLEIGH", tarkIso.x, tarkIso.y - 68);
 
             c.font = "9px 'Cinzel', serif";
             c.fillStyle = "#c2ab87";
-            c.fillText("COMMANDER OF THE WATCH", tarkIso.x, tarkIso.y - 111);
+            c.fillText("COMMANDER OF THE WATCH", tarkIso.x, tarkIso.y - 56);
 
             c.font = "bold 9px sans-serif";
             c.fillStyle = "#2ecc71";
-            c.fillText("💬 [Click to Speak]", tarkIso.x, tarkIso.y - 98);
+            c.fillText("💬 [Click to Speak]", tarkIso.x, tarkIso.y - 45);
             c.restore();
           }
         });
-        secondaryLights.push(toScreenLight(tarkIso.x, tarkIso.y - 30, 170));
+        secondaryLights.push(toScreenLight(tarkIso.x, tarkIso.y - 20, 170));
 
         // 4. Strand Town Portal situated at (750, 350)
-        const portalIso = worldToIso(750, 350);
+        const portalIso = worldToIso(...TOWN.portal);
         depthEntities.push({
           depth: portalIso.y,
           render: (c) => {
-            isoSpriteRenderer.drawSprite(c, "portal", "default", portalIso.x, portalIso.y, 0.22);
+            isoSpriteRenderer.drawSprite(c, "portal", "default", portalIso.x, portalIso.y, 0.15);
             c.save();
             c.fillStyle = "#c39bd3";
             c.font = "bold 11px 'Cinzel', serif";
             c.textAlign = "center";
             c.shadowColor = "#000000";
             c.shadowBlur = 8;
-            c.fillText("THE STRAND (ACT 1)", portalIso.x, portalIso.y + 26);
+            c.fillText("THE STRAND (ACT 1)", portalIso.x, portalIso.y + 18);
             c.restore();
           }
         });
@@ -1056,28 +1066,28 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // 1. Interactive NPCs, Stash & Portals in Town
     if (zoneType === "town") {
       // Tarkleigh at (580, 290)
-      if (Math.hypot(580 - worldX, 290 - worldY) < 85) {
+      if (Math.hypot(TOWN.npc[0] - worldX, TOWN.npc[1] - worldY) < 60) {
         sounds.playLootTink(false);
         if (onInteractNpc) onInteractNpc("tarkleigh");
         return;
       }
 
       // Stash Chest at (320, 260)
-      if (Math.hypot(320 - worldX, 260 - worldY) < 85) {
+      if (Math.hypot(TOWN.stash[0] - worldX, TOWN.stash[1] - worldY) < 60) {
         sounds.playLootTink(false);
         if (onOpenStash) onOpenStash();
         return;
       }
 
       // Lioneye's Waypoint at (400, 350)
-      if (Math.hypot(400 - worldX, 350 - worldY) < 90) {
+      if (Math.hypot(TOWN.waypoint[0] - worldX, TOWN.waypoint[1] - worldY) < 60) {
         sounds.playPortalSound();
         if (onEnterPortal) onEnterPortal("portal_strand");
         return;
       }
 
       // Strand Portal at (750, 350)
-      if (Math.hypot(750 - worldX, 350 - worldY) < 90) {
+      if (Math.hypot(TOWN.portal[0] - worldX, TOWN.portal[1] - worldY) < 60) {
         sounds.playPortalSound();
         if (onEnterPortal) onEnterPortal("portal_strand");
         return;
