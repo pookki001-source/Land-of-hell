@@ -13,6 +13,12 @@ import {
   applyDiablo2PitchBlackLighting,
   LightSource
 } from "./isometricEngine";
+import {
+  CharacterSpriteAnimator,
+  DEFAULT_PLAYER_SPRITE_CONFIG,
+  MAGE_PLAYER_SPRITE_CONFIG,
+  calculateIsometricDirectionRow
+} from "./spriteAnimator";
 
 interface FloatingText {
   id: number;
@@ -93,6 +99,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     speed: 230,
     lastTime: performance.now()
   });
+
+  // Character Sprite Animators (8-Directional Isometric Walk & Idle Cycles)
+  const localAnimatorRef = useRef<CharacterSpriteAnimator>(
+    new CharacterSpriteAnimator(DEFAULT_PLAYER_SPRITE_CONFIG)
+  );
+  const remoteAnimatorsRef = useRef<Map<string, CharacterSpriteAnimator>>(new Map());
+
+  // Update animator config when character class changes (Mage vs Warrior/Duelist/Ranger)
+  useEffect(() => {
+    const charClass = (localPlayerDataProp?.characterClass || "").toLowerCase();
+    if (charClass.includes("witch") || charClass.includes("sorc") || charClass.includes("mage")) {
+      localAnimatorRef.current.setConfig(MAGE_PLAYER_SPRITE_CONFIG);
+    } else {
+      localAnimatorRef.current.setConfig(DEFAULT_PLAYER_SPRITE_CONFIG);
+    }
+  }, [localPlayerDataProp?.characterClass]);
 
   // Preload pre-rendered isometric PNG sprites
   useEffect(() => {
@@ -224,40 +246,49 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (room && room.state && room.state.players) {
         const serverPlayer = room.state.players.get(room.sessionId);
         if (serverPlayer) {
-          sim.x = serverPlayer.x;
-          sim.y = serverPlayer.y;
           if (serverPlayer.targetX !== undefined) sim.targetX = serverPlayer.targetX;
           if (serverPlayer.targetY !== undefined) sim.targetY = serverPlayer.targetY;
-          playerWorldX = serverPlayer.x;
-          playerWorldY = serverPlayer.y;
-          playerTargetX = sim.targetX;
-          playerTargetY = sim.targetY;
-        } else {
-          // Local interpolation
-          const dx = sim.targetX - sim.x;
-          const dy = sim.targetY - sim.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist > 4) {
-            const step = Math.min(dist, sim.speed * dt);
-            sim.x += (dx / dist) * step;
-            sim.y += (dy / dist) * step;
-          }
-          playerWorldX = sim.x;
-          playerWorldY = sim.y;
         }
-      } else {
-        // Offline / Syncing local interpolation
-        const dx = sim.targetX - sim.x;
-        const dy = sim.targetY - sim.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 4) {
-          const step = Math.min(dist, sim.speed * dt);
-          sim.x += (dx / dist) * step;
-          sim.y += (dy / dist) * step;
-        }
-        playerWorldX = sim.x;
-        playerWorldY = sim.y;
       }
+
+      // Smooth Vector Movement Towards Target Destination (Zero Jitter)
+      const dx = sim.targetX - sim.x;
+      const dy = sim.targetY - sim.y;
+      const dist = Math.hypot(dx, dy);
+      const arriveThreshold = 2.0;
+
+      let isMoving = false;
+      let facingRow = localAnimatorRef.current.getDirection();
+
+      if (dist > arriveThreshold) {
+        isMoving = true;
+        const moveStep = sim.speed * dt;
+        if (moveStep >= dist) {
+          // Snap precisely at destination to eliminate jitter and stop instantly
+          sim.x = sim.targetX;
+          sim.y = sim.targetY;
+          isMoving = false;
+        } else {
+          // Move along normalized unit vector at constant velocity
+          sim.x += (dx / dist) * moveStep;
+          sim.y += (dy / dist) * moveStep;
+        }
+
+        // Calculate isometric screen direction vector and map to 8-directional spritesheet row
+        const isoDx = dx - dy;
+        const isoDy = (dx + dy) * 0.5;
+        facingRow = calculateIsometricDirectionRow(isoDx, isoDy);
+      } else {
+        sim.x = sim.targetX;
+        sim.y = sim.targetY;
+        isMoving = false;
+      }
+
+      playerWorldX = sim.x;
+      playerWorldY = sim.y;
+
+      // Update Local Player Sprite Animator (Idle vs Walk State Machine with delta time)
+      localAnimatorRef.current.update(dt, isMoving, facingRow);
 
       // 2. Isometric Camera: Focus on Player's Isometric Position
       const playerIso = worldToIso(playerWorldX, playerWorldY);
@@ -567,10 +598,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       const renderPlayerEntity = (p: any, isLocal: boolean) => {
         const iso = worldToIso(p.x, p.y);
-        const dx = (p.targetX ?? p.x) - p.x;
-        const dy = (p.targetY ?? p.y) - p.y;
-        const isMoving = Math.hypot(dx, dy) > 4;
-        const dir = isMoving ? getIsometricDirection(dx, dy) : "down_right";
 
         depthEntities.push({
           depth: iso.y,
@@ -587,8 +614,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               c.restore();
             }
 
-            // Draw Pre-rendered Isometric Knight
-            isoSpriteRenderer.drawSprite(c, "knight", dir, iso.x, iso.y, 0.72);
+            // Render Animated Walk / Idle Sprite Cycle
+            let rendered = false;
+            if (isLocal) {
+              rendered = localAnimatorRef.current.render(c, iso.x, iso.y, 0.95);
+            } else {
+              let rAnim = remoteAnimatorsRef.current.get(p.id);
+              if (!rAnim) {
+                rAnim = new CharacterSpriteAnimator(DEFAULT_PLAYER_SPRITE_CONFIG);
+                remoteAnimatorsRef.current.set(p.id, rAnim);
+              }
+              const rDx = (p.targetX ?? p.x) - p.x;
+              const rDy = (p.targetY ?? p.y) - p.y;
+              const rDist = Math.hypot(rDx, rDy);
+              const rMoving = rDist > 3.0;
+              const rIsoDx = rDx - rDy;
+              const rIsoDy = (rDx + rDy) * 0.5;
+              const rDir = calculateIsometricDirectionRow(rIsoDx, rIsoDy);
+              rAnim.update(dt, rMoving, rDir);
+              rendered = rAnim.render(c, iso.x, iso.y, 0.95);
+            }
+
+            // Fallback during texture loading
+            if (!rendered) {
+              isoSpriteRenderer.drawSprite(c, "knight", "down_right", iso.x, iso.y, 0.72);
+            }
 
             // Nameplate & Level
             c.save();
@@ -601,7 +651,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
             c.font = "9px 'Cinzel', serif";
             c.fillStyle = isLocal ? "#d4ac0d" : "#95a5a6";
-            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Duelist"}`, iso.x, iso.y - 113);
+            c.fillText(`Lv.${p.level || 1} ${p.characterClass || "Warrior"}`, iso.x, iso.y - 113);
             c.restore();
           }
         });
