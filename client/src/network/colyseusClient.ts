@@ -37,6 +37,7 @@ export interface LocalPlayerData {
   partyId: string;
   equipment?: EquippedGear;
   inventory?: GameItem[];
+  allocatedPassives?: string[];
 }
 
 const starter = generateStarterGear("Duelist");
@@ -65,7 +66,8 @@ export const defaultPlayerData: LocalPlayerData = {
   kills: 0,
   partyId: "",
   equipment: starter.gear,
-  inventory: starter.inventory
+  inventory: starter.inventory,
+  allocatedPassives: ["start_duelist"]
 };
 
 export async function joinTownRoom(playerData: LocalPlayerData): Promise<Room<any>> {

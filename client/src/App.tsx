@@ -11,6 +11,11 @@ import { GameCanvas } from "./game/GameCanvas";
 import { PoEOverlay } from "./components/PoEOverlay";
 import { CharacterSelectScreen } from "./components/CharacterSelectScreen";
 import { InventoryModal } from "./components/InventoryModal";
+import {
+  PassiveTreeModal,
+  calculatePassiveTotals,
+  getStartNodeForClass
+} from "./components/PassiveTreeModal";
 import { EquippedGear, GameItem, generateStarterGear } from "./data/itemData";
 import { sounds } from "./utils/soundEffects";
 import {
@@ -38,6 +43,7 @@ export const App: React.FC = () => {
 
   const [activeCharacter, setActiveCharacter] = useState<LocalPlayerData | null>(null);
   const [isInventoryOpen, setIsInventoryOpen] = useState<boolean>(false);
+  const [isPassiveTreeOpen, setIsPassiveTreeOpen] = useState<boolean>(false);
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
@@ -47,13 +53,18 @@ export const App: React.FC = () => {
 
   const prevLevelRef = useRef<number>(1);
 
-  // Keyboard shortcut: Press 'I' or 'B' to toggle Inventory
+  // Keyboard shortcuts: 'I'/'B' for Inventory, 'P' for Passive Tree
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "i" || e.key === "I" || e.key === "b" || e.key === "B") {
         if (activeCharacter) {
           setIsInventoryOpen((prev) => !prev);
+        }
+      }
+      if (e.key === "p" || e.key === "P") {
+        if (activeCharacter) {
+          setIsPassiveTreeOpen((prev) => !prev);
         }
       }
     };
@@ -220,6 +231,16 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleUpdateAllocatedNodes = (newNodeIds: string[]) => {
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        allocatedPassives: newNodeIds
+      };
+    });
+  };
+
   const showPopupNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => {
@@ -315,6 +336,7 @@ export const App: React.FC = () => {
             onToggleAuto={handleToggleAuto}
             onSwitchCharacter={handleSwitchCharacter}
             onToggleInventory={() => setIsInventoryOpen((prev) => !prev)}
+            onTogglePassiveTree={() => setIsPassiveTreeOpen((prev) => !prev)}
           />
 
           {/* POE TETRIS INVENTORY & EQUIPMENT MODAL */}
@@ -326,6 +348,16 @@ export const App: React.FC = () => {
             onUpdateEquipment={handleUpdateEquipment}
             onUpdateInventory={handleUpdateInventory}
             characterName={activeCharacter.name}
+            characterClass={activeCharacter.characterClass}
+          />
+
+          {/* POE PASSIVE SKILL CONSTELLATION MODAL */}
+          <PassiveTreeModal
+            isOpen={isPassiveTreeOpen}
+            onClose={() => setIsPassiveTreeOpen(false)}
+            allocatedNodeIds={activeCharacter.allocatedPassives || [getStartNodeForClass(activeCharacter.characterClass)]}
+            onUpdateAllocatedNodes={handleUpdateAllocatedNodes}
+            playerLevel={activeCharacter.level}
             characterClass={activeCharacter.characterClass}
           />
         </>

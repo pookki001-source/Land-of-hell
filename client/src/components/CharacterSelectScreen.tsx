@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { CORE_CLASSES, ClassProfile } from "../data/classesData";
 import { LocalPlayerData } from "../network/colyseusClient";
 import { generateStarterGear } from "../data/itemData";
+import { getStartNodeForClass } from "./PassiveTreeModal";
 import { Plus, Trash2, Play, ArrowLeft, Shield, Zap, Heart, Sparkles, User, Sword } from "lucide-react";
 
 interface CharacterSelectScreenProps {
@@ -68,7 +69,8 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
       kills: 0,
       partyId: "",
       equipment: starter.gear,
-      inventory: starter.inventory
+      inventory: starter.inventory,
+      allocatedPassives: [getStartNodeForClass(cls.id)]
     };
 
     onCreateCharacter(newPlayer);

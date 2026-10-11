@@ -23,6 +23,7 @@ interface PoEOverlayProps {
   onToggleAuto?: () => void;
   onSwitchCharacter?: () => void;
   onToggleInventory?: () => void;
+  onTogglePassiveTree?: () => void;
 }
 
 export const PoEOverlay: React.FC<PoEOverlayProps> = ({
@@ -34,7 +35,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
   onReturnToTown,
   onToggleAuto,
   onSwitchCharacter,
-  onToggleInventory
+  onToggleInventory,
+  onTogglePassiveTree
 }) => {
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -205,6 +207,26 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
           )}
 
           <button
+            onClick={onTogglePassiveTree}
+            style={{
+              backgroundColor: "#1e1728",
+              border: "1px solid #9b59b6",
+              color: "#e8daef",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 0 10px rgba(155, 89, 182, 0.25)"
+            }}
+          >
+            🌌 Tree (P)
+          </button>
+
+          <button
             onClick={onToggleInventory}
             style={{
               backgroundColor: "#2e2316",
@@ -221,7 +243,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               boxShadow: "0 0 10px rgba(212, 172, 13, 0.25)"
             }}
           >
-            🎒 Gear & Bags (I)
+            🎒 Gear (I)
           </button>
 
           <button
