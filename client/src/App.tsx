@@ -10,6 +10,8 @@ import {
 import { GameCanvas } from "./game/GameCanvas";
 import { PoEOverlay } from "./components/PoEOverlay";
 import { CharacterSelectScreen } from "./components/CharacterSelectScreen";
+import { InventoryModal } from "./components/InventoryModal";
+import { EquippedGear, GameItem, generateStarterGear } from "./data/itemData";
 import { sounds } from "./utils/soundEffects";
 import {
   saveCharacterToCloud,
@@ -35,6 +37,7 @@ export const App: React.FC = () => {
   });
 
   const [activeCharacter, setActiveCharacter] = useState<LocalPlayerData | null>(null);
+  const [isInventoryOpen, setIsInventoryOpen] = useState<boolean>(false);
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
@@ -43,6 +46,20 @@ export const App: React.FC = () => {
   const [notification, setNotification] = useState<string | null>(null);
 
   const prevLevelRef = useRef<number>(1);
+
+  // Keyboard shortcut: Press 'I' or 'B' to toggle Inventory
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "i" || e.key === "I" || e.key === "b" || e.key === "B") {
+        if (activeCharacter) {
+          setIsInventoryOpen((prev) => !prev);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeCharacter]);
 
   // Sync roster with Supabase Cloud on mount
   useEffect(() => {
@@ -180,6 +197,27 @@ export const App: React.FC = () => {
     if (room) room.leave();
     setRoom(null);
     setActiveCharacter(null);
+    setIsInventoryOpen(false);
+  };
+
+  const handleUpdateEquipment = (newGear: EquippedGear) => {
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        equipment: newGear
+      };
+    });
+  };
+
+  const handleUpdateInventory = (newInv: GameItem[]) => {
+    setActiveCharacter((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        inventory: newInv
+      };
+    });
   };
 
   const showPopupNotification = (msg: string) => {
@@ -276,6 +314,19 @@ export const App: React.FC = () => {
             onReturnToTown={handleReturnToTown}
             onToggleAuto={handleToggleAuto}
             onSwitchCharacter={handleSwitchCharacter}
+            onToggleInventory={() => setIsInventoryOpen((prev) => !prev)}
+          />
+
+          {/* POE TETRIS INVENTORY & EQUIPMENT MODAL */}
+          <InventoryModal
+            isOpen={isInventoryOpen}
+            onClose={() => setIsInventoryOpen(false)}
+            equipment={activeCharacter.equipment || (generateStarterGear(activeCharacter.characterClass).gear)}
+            inventory={activeCharacter.inventory || (generateStarterGear(activeCharacter.characterClass).inventory)}
+            onUpdateEquipment={handleUpdateEquipment}
+            onUpdateInventory={handleUpdateInventory}
+            characterName={activeCharacter.name}
+            characterClass={activeCharacter.characterClass}
           />
         </>
       )}

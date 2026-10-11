@@ -22,6 +22,7 @@ interface PoEOverlayProps {
   onReturnToTown?: () => void;
   onToggleAuto?: () => void;
   onSwitchCharacter?: () => void;
+  onToggleInventory?: () => void;
 }
 
 export const PoEOverlay: React.FC<PoEOverlayProps> = ({
@@ -32,7 +33,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
   onOpenPortal,
   onReturnToTown,
   onToggleAuto,
-  onSwitchCharacter
+  onSwitchCharacter,
+  onToggleInventory
 }) => {
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -201,6 +203,26 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               <Compass size={14} /> Return to Town
             </button>
           )}
+
+          <button
+            onClick={onToggleInventory}
+            style={{
+              backgroundColor: "#2e2316",
+              border: "1px solid #d4ac0d",
+              color: "#f5e6ca",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 0 10px rgba(212, 172, 13, 0.25)"
+            }}
+          >
+            🎒 Gear & Bags (I)
+          </button>
 
           <button
             onClick={onSwitchCharacter}

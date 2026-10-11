@@ -10,6 +10,8 @@ const SERVER_URL =
 
 export const colyseus = new Client(SERVER_URL);
 
+import { EquippedGear, GameItem, generateStarterGear } from "../data/itemData";
+
 export interface LocalPlayerData {
   name: string;
   characterClass: string;
@@ -33,7 +35,11 @@ export interface LocalPlayerData {
   wisdomScrolls: number;
   kills: number;
   partyId: string;
+  equipment?: EquippedGear;
+  inventory?: GameItem[];
 }
+
+const starter = generateStarterGear("Duelist");
 
 export const defaultPlayerData: LocalPlayerData = {
   name: `Exile_${Math.floor(1000 + Math.random() * 9000)}`,
@@ -57,7 +63,9 @@ export const defaultPlayerData: LocalPlayerData = {
   divineOrbs: 0,
   wisdomScrolls: 5,
   kills: 0,
-  partyId: ""
+  partyId: "",
+  equipment: starter.gear,
+  inventory: starter.inventory
 };
 
 export async function joinTownRoom(playerData: LocalPlayerData): Promise<Room<any>> {

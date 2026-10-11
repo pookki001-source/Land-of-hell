@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CORE_CLASSES, ClassProfile } from "../data/classesData";
 import { LocalPlayerData } from "../network/colyseusClient";
+import { generateStarterGear } from "../data/itemData";
 import { Plus, Trash2, Play, ArrowLeft, Shield, Zap, Heart, Sparkles, User, Sword } from "lucide-react";
 
 interface CharacterSelectScreenProps {
@@ -41,6 +42,8 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
     }
 
     const cls = CORE_CLASSES[selectedClassId];
+    const starter = generateStarterGear(cls.id);
+
     const newPlayer: LocalPlayerData = {
       name: trimmed,
       characterClass: cls.id,
@@ -63,7 +66,9 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
       divineOrbs: 0,
       wisdomScrolls: 5,
       kills: 0,
-      partyId: ""
+      partyId: "",
+      equipment: starter.gear,
+      inventory: starter.inventory
     };
 
     onCreateCharacter(newPlayer);
