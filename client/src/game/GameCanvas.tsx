@@ -77,13 +77,17 @@ interface GameCanvasProps {
   zoneType: "town" | "map";
   localPlayer?: LocalPlayerData | null;
   onEnterPortal?: (portalId: string, partyId?: string) => void;
+  onInteractNpc?: (npcId: string) => void;
+  onOpenStash?: () => void;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
   room,
   zoneType,
   localPlayer: localPlayerDataProp,
-  onEnterPortal
+  onEnterPortal,
+  onInteractNpc,
+  onOpenStash
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const floatingTextsRef = useRef<FloatingText[]>([]);
@@ -372,6 +376,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         return ripple.alpha > 0;
       });
 
+      // ================= 5.5 COASTAL GROUND MIST (TOWN ATMOSPHERE) =================
+      if (zoneType === "town") {
+        ctx.save();
+        for (let i = 0; i < 6; i++) {
+          const mistSpeed = (now * 0.015 + i * 190) % 1000;
+          const mistIsoX = -400 + mistSpeed * 1.6;
+          const mistIsoY = 160 + ((i * 140) % 460) - 200;
+          const mistRadius = 160 + (i % 3) * 50;
+          const grad = ctx.createRadialGradient(mistIsoX, mistIsoY, 15, mistIsoX, mistIsoY, mistRadius);
+          grad.addColorStop(0, "rgba(180, 205, 220, 0.08)");
+          grad.addColorStop(0.5, "rgba(160, 185, 200, 0.04)");
+          grad.addColorStop(1, "transparent");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.ellipse(mistIsoX, mistIsoY, mistRadius * 1.8, mistRadius * 0.7, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
       // ================= 6. GATHER & DEPTH-SORT ALL ENTITIES =================
       const depthEntities: DepthEntity[] = [];
 
@@ -380,7 +404,186 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // A. TOWN HUB INTERACTIVE OBJECTS (LIONEYE'S WATCH)
       if (zoneType === "town") {
-        // 1. Waypoint (Return Obelisk) situated at (400, 350)
+        // 1. Fortified Camp Palisades (Sharpened Timber Ramparts)
+        const palisadePosts = [
+          { wx: 180, wy: 120 }, { wx: 240, wy: 120 }, { wx: 300, wy: 120 },
+          { wx: 360, wy: 120 }, { wx: 420, wy: 120 }, { wx: 480, wy: 120 },
+          { wx: 540, wy: 120 }, { wx: 600, wy: 120 }, { wx: 660, wy: 120 },
+          { wx: 160, wy: 180 }, { wx: 160, wy: 240 }, { wx: 160, wy: 300 },
+          { wx: 160, wy: 360 }, { wx: 160, wy: 420 }, { wx: 160, wy: 480 },
+          { wx: 160, wy: 540 }, { wx: 160, wy: 600 },
+          { wx: 220, wy: 640 }, { wx: 300, wy: 640 }, { wx: 380, wy: 640 },
+          { wx: 620, wy: 640 }, { wx: 700, wy: 640 }, { wx: 780, wy: 640 }
+        ];
+        palisadePosts.forEach((post) => {
+          const pIso = worldToIso(post.wx, post.wy);
+          depthEntities.push({
+            depth: pIso.y,
+            render: (c) => {
+              c.save();
+              c.fillStyle = "rgba(0, 0, 0, 0.45)";
+              c.beginPath();
+              c.ellipse(pIso.x + 6, pIso.y + 4, 12, 5, 0, 0, Math.PI * 2);
+              c.fill();
+
+              c.fillStyle = "#3b2b1e";
+              c.strokeStyle = "#20150d";
+              c.lineWidth = 1.4;
+              c.beginPath();
+              c.moveTo(pIso.x - 6, pIso.y + 2);
+              c.lineTo(pIso.x - 6, pIso.y - 34);
+              c.lineTo(pIso.x, pIso.y - 46);
+              c.lineTo(pIso.x + 6, pIso.y - 34);
+              c.lineTo(pIso.x + 6, pIso.y + 2);
+              c.closePath();
+              c.fill();
+              c.stroke();
+
+              c.strokeStyle = "#5a432f";
+              c.lineWidth = 1;
+              c.beginPath();
+              c.moveTo(pIso.x - 1, pIso.y + 2);
+              c.lineTo(pIso.x - 1, pIso.y - 40);
+              c.stroke();
+
+              c.fillStyle = "#1e1e1e";
+              c.fillRect(pIso.x - 6, pIso.y - 18, 12, 3);
+              c.restore();
+            }
+          });
+        });
+
+        // 2. Perimeter Watch Torches with Dynamic Flickering Flame
+        const campTorches = [
+          { wx: 220, wy: 140 },
+          { wx: 620, wy: 140 },
+          { wx: 180, wy: 380 },
+          { wx: 680, wy: 560 }
+        ];
+        campTorches.forEach((torch, tIdx) => {
+          const tIso = worldToIso(torch.wx, torch.wy);
+          depthEntities.push({
+            depth: tIso.y,
+            render: (c) => {
+              c.save();
+              c.fillStyle = "rgba(0, 0, 0, 0.5)";
+              c.beginPath();
+              c.ellipse(tIso.x + 5, tIso.y + 2, 10, 4, 0, 0, Math.PI * 2);
+              c.fill();
+
+              c.strokeStyle = "#2b221a";
+              c.lineWidth = 4;
+              c.beginPath();
+              c.moveTo(tIso.x, tIso.y);
+              c.lineTo(tIso.x, tIso.y - 36);
+              c.stroke();
+
+              c.fillStyle = "#4a3b2c";
+              c.beginPath();
+              c.moveTo(tIso.x - 7, tIso.y - 36);
+              c.lineTo(tIso.x + 7, tIso.y - 36);
+              c.lineTo(tIso.x + 4, tIso.y - 44);
+              c.lineTo(tIso.x - 4, tIso.y - 44);
+              c.closePath();
+              c.fill();
+
+              const flameFlicker = Math.sin((now + tIdx * 250) / 75) * 2.5;
+              const flameGrad = c.createRadialGradient(tIso.x, tIso.y - 46, 1, tIso.x, tIso.y - 48, 12);
+              flameGrad.addColorStop(0, "#ffffff");
+              flameGrad.addColorStop(0.3, "#f39c12");
+              flameGrad.addColorStop(0.8, "#d35400");
+              flameGrad.addColorStop(1, "transparent");
+
+              c.fillStyle = flameGrad;
+              c.beginPath();
+              c.ellipse(tIso.x + flameFlicker * 0.3, tIso.y - 48, 5, 10 + flameFlicker, 0, 0, Math.PI * 2);
+              c.fill();
+
+              const sparkY = tIso.y - 52 - ((now * 0.05 + tIdx * 25) % 16);
+              c.fillStyle = "#f1c40f";
+              c.fillRect(tIso.x + Math.sin(now / 90 + tIdx) * 3, sparkY, 1.5, 1.5);
+              c.restore();
+            }
+          });
+
+          secondaryLights.push(
+            toScreenLight(tIso.x, tIso.y - 20, 180 + Math.sin((now + tIdx * 150) / 80) * 12)
+          );
+        });
+
+        // 3. Supply Crates & Refugee Survival Tents near Stash
+        const campCrates = [
+          { wx: 260, wy: 240, scale: 1 },
+          { wx: 360, wy: 210, scale: 0.9 },
+          { wx: 275, wy: 220, scale: 0.8 }
+        ];
+        campCrates.forEach((crate) => {
+          const cIso = worldToIso(crate.wx, crate.wy);
+          depthEntities.push({
+            depth: cIso.y,
+            render: (c) => {
+              c.save();
+              c.fillStyle = "rgba(0, 0, 0, 0.4)";
+              c.beginPath();
+              c.ellipse(cIso.x + 4, cIso.y + 4, 16 * crate.scale, 7 * crate.scale, 0, 0, Math.PI * 2);
+              c.fill();
+
+              const w = 22 * crate.scale;
+              const h = 18 * crate.scale;
+              c.fillStyle = "#4a3928";
+              c.fillRect(cIso.x - w / 2, cIso.y - h, w, h);
+              c.strokeStyle = "#2b1e13";
+              c.lineWidth = 1.4;
+              c.strokeRect(cIso.x - w / 2, cIso.y - h, w, h);
+
+              c.fillStyle = "#1e1e1e";
+              c.fillRect(cIso.x - w / 2, cIso.y - h, 3, 3);
+              c.fillRect(cIso.x + w / 2 - 3, cIso.y - h, 3, 3);
+              c.fillRect(cIso.x - w / 2, cIso.y - 3, 3, 3);
+              c.fillRect(cIso.x + w / 2 - 3, cIso.y - 3, 3, 3);
+              c.restore();
+            }
+          });
+        });
+
+        // Refugee Weather-beaten Canvas Tent at (210, 200)
+        const tentIso = worldToIso(210, 200);
+        depthEntities.push({
+          depth: tentIso.y,
+          render: (c) => {
+            c.save();
+            c.fillStyle = "rgba(0, 0, 0, 0.5)";
+            c.beginPath();
+            c.ellipse(tentIso.x + 6, tentIso.y + 6, 38, 16, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.fillStyle = "#5c5243";
+            c.beginPath();
+            c.moveTo(tentIso.x, tentIso.y - 42);
+            c.lineTo(tentIso.x - 32, tentIso.y + 2);
+            c.lineTo(tentIso.x + 32, tentIso.y + 2);
+            c.closePath();
+            c.fill();
+
+            c.fillStyle = "#181410";
+            c.beginPath();
+            c.moveTo(tentIso.x, tentIso.y - 34);
+            c.lineTo(tentIso.x - 12, tentIso.y + 2);
+            c.lineTo(tentIso.x + 12, tentIso.y + 2);
+            c.closePath();
+            c.fill();
+
+            c.strokeStyle = "#2d2218";
+            c.lineWidth = 2.5;
+            c.beginPath();
+            c.moveTo(tentIso.x, tentIso.y - 44);
+            c.lineTo(tentIso.x, tentIso.y + 2);
+            c.stroke();
+            c.restore();
+          }
+        });
+
+        // 4. Waypoint (Return Obelisk) situated at (400, 350)
         const wpIso = worldToIso(400, 350);
         depthEntities.push({
           depth: wpIso.y,
@@ -406,10 +609,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.restore();
           }
         });
-        // Register Waypoint Emerald Light
         secondaryLights.push(toScreenLight(wpIso.x, wpIso.y, 220 + Math.sin(now / 150) * 8));
 
-        // 2. Medieval Campfire situated at (480, 480)
+        // 5. Medieval Campfire situated at (480, 480)
         const fireIso = worldToIso(480, 480);
         depthEntities.push({
           depth: fireIso.y,
@@ -430,10 +632,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.restore();
           }
         });
-        // Register Campfire Radiant Orange Light
         secondaryLights.push(toScreenLight(fireIso.x, fireIso.y, 270 + Math.sin(now / 95) * 14));
 
-        // 3. Stash Chest situated at (320, 260)
+        // 6. Stash Chest situated at (320, 260)
         const stashIso = worldToIso(320, 260);
         depthEntities.push({
           depth: stashIso.y,
@@ -445,10 +646,52 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             c.textAlign = "center";
             c.shadowColor = "#000000";
             c.shadowBlur = 6;
-            c.fillText("STASH", stashIso.x, stashIso.y + 22);
+            c.fillText("STASH (CLICK)", stashIso.x, stashIso.y + 22);
             c.restore();
           }
         });
+
+        // 7. NPC Tarkleigh situated at (580, 290)
+        const tarkIso = worldToIso(580, 290);
+        depthEntities.push({
+          depth: tarkIso.y,
+          render: (c) => {
+            isoSpriteRenderer.drawSprite(c, "knight", "down_left", tarkIso.x, tarkIso.y, 0.95);
+
+            c.save();
+            const pulse = Math.sin(now / 220) * 3;
+            // Exclamation Icon
+            c.fillStyle = "#f39c12";
+            c.shadowColor = "#f1c40f";
+            c.shadowBlur = 10;
+            c.beginPath();
+            c.arc(tarkIso.x, tarkIso.y - 148 + pulse, 11, 0, Math.PI * 2);
+            c.fill();
+
+            c.fillStyle = "#000000";
+            c.font = "bold 13px 'Cinzel', serif";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText("!", tarkIso.x, tarkIso.y - 147 + pulse);
+
+            // Gothic Nameplate
+            c.shadowBlur = 6;
+            c.shadowColor = "#000000";
+            c.font = "bold 12px 'Cinzel', serif";
+            c.fillStyle = "#f5e6ca";
+            c.fillText("TARKLEIGH", tarkIso.x, tarkIso.y - 124);
+
+            c.font = "9px 'Cinzel', serif";
+            c.fillStyle = "#c2ab87";
+            c.fillText("COMMANDER OF THE WATCH", tarkIso.x, tarkIso.y - 111);
+
+            c.font = "bold 9px sans-serif";
+            c.fillStyle = "#2ecc71";
+            c.fillText("💬 [Click to Speak]", tarkIso.x, tarkIso.y - 98);
+            c.restore();
+          }
+        });
+        secondaryLights.push(toScreenLight(tarkIso.x, tarkIso.y - 30, 170));
 
         // 4. Strand Town Portal situated at (750, 350)
         const portalIso = worldToIso(750, 350);
@@ -810,8 +1053,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const worldX = worldPos.x;
     const worldY = worldPos.y;
 
-    // 1. Waypoint & Portals in Town
+    // 1. Interactive NPCs, Stash & Portals in Town
     if (zoneType === "town") {
+      // Tarkleigh at (580, 290)
+      if (Math.hypot(580 - worldX, 290 - worldY) < 85) {
+        sounds.playLootTink(false);
+        if (onInteractNpc) onInteractNpc("tarkleigh");
+        return;
+      }
+
+      // Stash Chest at (320, 260)
+      if (Math.hypot(320 - worldX, 260 - worldY) < 85) {
+        sounds.playLootTink(false);
+        if (onOpenStash) onOpenStash();
+        return;
+      }
+
       // Lioneye's Waypoint at (400, 350)
       if (Math.hypot(400 - worldX, 350 - worldY) < 90) {
         sounds.playPortalSound();

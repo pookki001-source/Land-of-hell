@@ -44,6 +44,7 @@ export interface LocalPlayerData {
   inventoryGems?: string[];
   ascendancyClass?: string;
   ascendancyNodes?: string[];
+  hasClaimedStarterPack?: boolean;
 }
 
 const starter = generateStarterGear("Duelist");

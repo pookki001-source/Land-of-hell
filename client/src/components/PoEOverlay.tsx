@@ -642,31 +642,53 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
             pointerEvents: "auto"
           }}
         >
-          {/* PROMINENT [AUTO FARM] TOGGLE BUTTON */}
-          <button
-            onClick={onToggleAuto}
-            style={{
-              padding: "10px 28px",
-              borderRadius: "6px",
-              backgroundColor: isAuto ? "#922b21" : "#241f1a",
-              border: `2px solid ${isAuto ? "#ff4757" : "#5d4f3b"}`,
-              color: isAuto ? "#ffffff" : "#c9b99a",
-              fontSize: "14px",
-              fontWeight: 900,
-              letterSpacing: "1.5px",
-              cursor: "pointer",
-              boxShadow: isAuto
-                ? "0 0 25px rgba(231, 76, 60, 0.7), 0 0 10px rgba(255, 71, 87, 0.9)"
-                : "0 4px 10px rgba(0,0,0,0.5)",
-              transition: "all 0.2s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px"
-            }}
-          >
-            <Sword size={18} color={isAuto ? "#ffffff" : "#f1c40f"} />
-            {isAuto ? "AUTO FARM: ACTIVE" : "ACTIVATE AUTO FARM"}
-          </button>
+          {/* ACTION / OBJECTIVE BANNER: Auto-hunt in Maps, Act 1 Quest in Town */}
+          {zoneType === "map" ? (
+            <button
+              onClick={onToggleAuto}
+              style={{
+                padding: "10px 28px",
+                borderRadius: "6px",
+                backgroundColor: isAuto ? "#922b21" : "#241f1a",
+                border: `2px solid ${isAuto ? "#ff4757" : "#5d4f3b"}`,
+                color: isAuto ? "#ffffff" : "#c9b99a",
+                fontSize: "14px",
+                fontWeight: 900,
+                letterSpacing: "1.5px",
+                cursor: "pointer",
+                boxShadow: isAuto
+                  ? "0 0 25px rgba(231, 76, 60, 0.7), 0 0 10px rgba(255, 71, 87, 0.9)"
+                  : "0 4px 10px rgba(0,0,0,0.5)",
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              <Sword size={18} color={isAuto ? "#ffffff" : "#f1c40f"} />
+              {isAuto ? "AUTO FARM: ACTIVE" : "ACTIVATE AUTO FARM"}
+            </button>
+          ) : (
+            <div
+              style={{
+                padding: "8px 20px",
+                borderRadius: "6px",
+                backgroundColor: "rgba(20, 16, 12, 0.92)",
+                border: "1px solid #7d6642",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.7), inset 0 0 8px rgba(212, 172, 13, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              <span style={{ color: "#f39c12", fontWeight: 800, fontSize: "12px", fontFamily: "'Cinzel', serif", letterSpacing: "1px" }}>
+                ⚔️ ACT I:
+              </span>
+              <span style={{ color: "#e2d5c3", fontSize: "12px", fontWeight: 600 }}>
+                Speak with Tarkleigh or enter The Strand
+              </span>
+            </div>
+          )}
 
           {/* PoE Skill & Flask Bar */}
           <div

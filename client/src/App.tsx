@@ -18,6 +18,7 @@ import {
 } from "./components/PassiveTreeModal";
 import { GemSocketModal, SocketsSetup } from "./components/GemSocketModal";
 import { CharacterSheetModal } from "./components/CharacterSheetModal";
+import { NpcDialogueModal } from "./components/NpcDialogueModal";
 import { EquippedGear, GameItem, generateStarterGear } from "./data/itemData";
 import { sounds } from "./utils/soundEffects";
 import {
@@ -48,6 +49,7 @@ export const App: React.FC = () => {
   const [isPassiveTreeOpen, setIsPassiveTreeOpen] = useState<boolean>(false);
   const [isSocketsModalOpen, setIsSocketsModalOpen] = useState<boolean>(false);
   const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState<boolean>(false);
+  const [isNpcModalOpen, setIsNpcModalOpen] = useState<boolean>(false);
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
@@ -394,6 +396,21 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleClaimStarterPack = () => {
+    if (!activeCharacter) return;
+    setActiveCharacter((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        wisdomScrolls: (prev.wisdomScrolls || 0) + 5,
+        chaosOrbs: (prev.chaosOrbs || 0) + 1,
+        hasClaimedStarterPack: true
+      };
+    });
+    sounds.playLootTink(true);
+    showPopupNotification("Tarkleigh granted: 5x Scroll of Wisdom, 1x Chaos Orb!");
+  };
+
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
       {/* 1. CHARACTER SELECT / CREATE SCREEN */}
@@ -414,6 +431,12 @@ export const App: React.FC = () => {
             zoneType={zoneType}
             localPlayer={activeCharacter}
             onEnterPortal={zoneType === "town" ? handleEnterPortal : handleReturnToTown}
+            onInteractNpc={(npcId) => {
+              if (npcId === "tarkleigh") {
+                setIsNpcModalOpen(true);
+              }
+            }}
+            onOpenStash={() => setIsInventoryOpen(true)}
           />
 
           {/* POE HUD & ACTION OVERLAY */}
@@ -492,6 +515,18 @@ export const App: React.FC = () => {
             player={activeCharacter}
             onSelectAscendancy={handleSelectAscendancy}
             onToggleAscendancyNode={handleToggleAscendancyNode}
+          />
+
+          {/* NPC TARKLEIGH DIALOGUE & LORE MODAL */}
+          <NpcDialogueModal
+            isOpen={isNpcModalOpen}
+            onClose={() => setIsNpcModalOpen(false)}
+            onEnterStrand={() => {
+              setIsNpcModalOpen(false);
+              handleEnterPortal("portal_strand");
+            }}
+            onClaimStarterPack={handleClaimStarterPack}
+            hasClaimedStarterPack={activeCharacter.hasClaimedStarterPack || false}
           />
         </>
       )}
