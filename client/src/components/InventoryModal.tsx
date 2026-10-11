@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GameItem, EquippedGear, SlotType, RARITY_COLORS } from "../data/itemData";
 import { ItemTooltip } from "./ItemTooltip";
+import { ItemVectorIcon } from "./GemIconHelper";
 import { X, Shield, Zap, Heart, Sword, Wind, Flame, Snowflake, Sparkles } from "lucide-react";
 
 interface InventoryModalProps {
@@ -426,7 +427,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
                         transition: "transform 0.1s"
                       }}
                     >
-                      <span style={{ fontSize: `${item.height > 2 ? 28 : 20}px` }}>{item.icon}</span>
+                      <ItemVectorIcon item={item} size={item.height > 2 ? 30 : 20} />
                       {item.width >= 2 && (
                         <span
                           style={{
@@ -529,7 +530,7 @@ const EquipmentSlotBox: React.FC<EquipmentSlotBoxProps> = ({
     >
       {item ? (
         <>
-          <span style={{ fontSize: size === "tall" ? "32px" : "22px" }}>{item.icon}</span>
+          <ItemVectorIcon item={item} size={size === "tall" ? 34 : 24} />
           <span
             style={{
               fontSize: "8px",

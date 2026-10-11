@@ -3,7 +3,8 @@ import { CORE_CLASSES, ClassProfile } from "../data/classesData";
 import { LocalPlayerData } from "../network/colyseusClient";
 import { generateStarterGear } from "../data/itemData";
 import { getStartNodeForClass } from "./PassiveTreeModal";
-import { Plus, Trash2, Play, ArrowLeft, Shield, Zap, Heart, Sparkles, User, Sword } from "lucide-react";
+import { ClassVectorIcon } from "./GemIconHelper";
+import { Plus, Trash2, Play, ArrowLeft, Shield, Zap, Heart, Sparkles, User, Sword, SunMedium } from "lucide-react";
 
 interface CharacterSelectScreenProps {
   characters: LocalPlayerData[];
@@ -176,7 +177,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
                         fontSize: "22px"
                       }}
                     >
-                      {cls.icon}
+                      <ClassVectorIcon classId={cls.id} size={22} color={cls.themeColor} />
                     </div>
 
                     <div>
@@ -263,8 +264,12 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
             >
               <div>
                 <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                  <div style={{ fontSize: "42px", marginBottom: "6px" }}>
-                    {CORE_CLASSES[characters[selectedCharIndex].characterClass]?.icon || "⚔️"}
+                  <div style={{ marginBottom: "10px", display: "flex", justifyContent: "center" }}>
+                    <ClassVectorIcon
+                      classId={characters[selectedCharIndex].characterClass}
+                      size={48}
+                      color={CORE_CLASSES[characters[selectedCharIndex].characterClass]?.themeColor || "#e67e22"}
+                    />
                   </div>
                   <h2 style={{ fontSize: "22px", color: "#f0dfb6", fontWeight: 700 }}>
                     {characters[selectedCharIndex].name}
@@ -313,16 +318,16 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
                       {characters[selectedCharIndex].kills}
                     </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "#8a7e6b" }}>Chaos Orbs Stashed:</span>
-                    <span style={{ color: "#f1c40f", fontWeight: 700 }}>
-                      🟡 {characters[selectedCharIndex].chaosOrbs}
+                    <span style={{ color: "#f1c40f", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                      <SunMedium size={14} color="#f1c40f" /> {characters[selectedCharIndex].chaosOrbs}
                     </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "#8a7e6b" }}>Divine Orbs Stashed:</span>
-                    <span style={{ color: "#f39c12", fontWeight: 700 }}>
-                      🌟 {characters[selectedCharIndex].divineOrbs}
+                    <span style={{ color: "#f39c12", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Sparkles size={14} color="#f39c12" /> {characters[selectedCharIndex].divineOrbs}
                     </span>
                   </div>
                 </div>
@@ -395,7 +400,9 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
                     transition: "all 0.2s"
                   }}
                 >
-                  <div style={{ fontSize: "28px" }}>{cls.icon}</div>
+                  <div style={{ padding: "4px" }}>
+                    <ClassVectorIcon classId={cls.id} size={28} color={cls.themeColor} />
+                  </div>
                   <div style={{ fontSize: "14px", fontWeight: 700, color: isSelected ? "#f0dfb6" : "#c9b99a" }}>
                     {cls.name}
                   </div>
@@ -431,8 +438,8 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
             {/* Left: Lore & Description */}
             <div style={{ flex: 1.2, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
-                  <span style={{ fontSize: "36px" }}>{selectedClass.icon}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "6px" }}>
+                  <ClassVectorIcon classId={selectedClass.id} size={36} color={selectedClass.themeColor} />
                   <div>
                     <h2 style={{ fontSize: "24px", color: selectedClass.themeColor, fontWeight: 700 }}>
                       {selectedClass.name}

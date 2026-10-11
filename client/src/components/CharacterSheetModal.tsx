@@ -7,6 +7,7 @@ import {
 import { LocalPlayerData } from "../network/colyseusClient";
 import { SKILL_GEMS } from "../data/gemData";
 import { sounds } from "../utils/soundEffects";
+import { GemIcon, AscendancySubclassIcon } from "./GemIconHelper";
 import {
   X,
   Shield,
@@ -20,7 +21,9 @@ import {
   Crown,
   Check,
   ChevronRight,
-  Info
+  Info,
+  ScrollText,
+  CircleDot
 } from "lucide-react";
 
 interface CharacterSheetModalProps {
@@ -153,7 +156,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <span style={{ fontSize: "24px" }}>📜</span>
+            <ScrollText size={24} color="#f1c40f" />
             <div>
               <div style={{ fontSize: "19px", fontWeight: 700, color: "#f3e1b7", letterSpacing: "1px" }}>
                 {player.name}
@@ -166,12 +169,15 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                       color: "#f1c40f",
                       backgroundColor: "#2e210b",
                       border: "1px solid #9c7b28",
-                      padding: "1px 8px",
+                      padding: "2px 8px",
                       borderRadius: "4px",
-                      fontWeight: 700
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
                     }}
                   >
-                    👑 {currentAscendancy.name}
+                    <Crown size={12} color="#f1c40f" /> {currentAscendancy.name}
                   </span>
                 )}
               </div>
@@ -181,32 +187,39 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           {/* TAB BUTTONS */}
           <div style={{ display: "flex", gap: "8px" }}>
             {[
-              { id: "defence", label: "🛡️ Defences" },
-              { id: "offence", label: "⚔️ Offence" },
-              { id: "ascendancy", label: "👑 Ascendancy" },
-              { id: "attributes", label: "✨ Attributes" }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  sounds.playHitSound();
-                  setActiveTab(tab.id as any);
-                }}
-                style={{
-                  padding: "7px 16px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  backgroundColor: activeTab === tab.id ? "#34281a" : "#171411",
-                  border: `1px solid ${activeTab === tab.id ? "#d4ac0d" : "#423727"}`,
-                  color: activeTab === tab.id ? "#f9e79f" : "#9e917d",
-                  transition: "all 0.15s"
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+              { id: "defence", label: "Defences", icon: Shield },
+              { id: "offence", label: "Offence", icon: Sword },
+              { id: "ascendancy", label: "Ascendancy", icon: Crown },
+              { id: "attributes", label: "Attributes", icon: Sparkles }
+            ].map((tab) => {
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    sounds.playHitSound();
+                    setActiveTab(tab.id as any);
+                  }}
+                  style={{
+                    padding: "7px 16px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    backgroundColor: activeTab === tab.id ? "#34281a" : "#171411",
+                    border: `1px solid ${activeTab === tab.id ? "#d4ac0d" : "#423727"}`,
+                    color: activeTab === tab.id ? "#f9e79f" : "#9e917d",
+                    transition: "all 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <TabIcon size={14} color={activeTab === tab.id ? "#f1c40f" : "#8e7f6b"} />
+                  {tab.label}
+                </button>
+              );
+            })}
 
             <button
               onClick={onClose}
@@ -327,7 +340,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                         <Flame size={14} /> Fire Resistance
                       </span>
                       <span style={{ fontWeight: 700, color: fireRes >= 75 ? "#f1c40f" : "#f5b7b1" }}>
-                        {fireRes}% / 75% {fireRes >= 75 && "✨ (CAP)"}
+                        {fireRes}% / 75% {fireRes >= 75 && "(MAX)"}
                       </span>
                     </div>
                     <div style={{ height: "8px", backgroundColor: "#201715", borderRadius: "4px", overflow: "hidden" }}>
@@ -342,7 +355,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                         <Snowflake size={14} /> Cold Resistance
                       </span>
                       <span style={{ fontWeight: 700, color: coldRes >= 75 ? "#f1c40f" : "#aed6f1" }}>
-                        {coldRes}% / 75% {coldRes >= 75 && "✨ (CAP)"}
+                        {coldRes}% / 75% {coldRes >= 75 && "(MAX)"}
                       </span>
                     </div>
                     <div style={{ height: "8px", backgroundColor: "#151c20", borderRadius: "4px", overflow: "hidden" }}>
@@ -357,7 +370,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                         <Zap size={14} /> Lightning Resistance
                       </span>
                       <span style={{ fontWeight: 700, color: lightningRes >= 75 ? "#f1c40f" : "#fad7a0" }}>
-                        {lightningRes}% / 75% {lightningRes >= 75 && "✨ (CAP)"}
+                        {lightningRes}% / 75% {lightningRes >= 75 && "(MAX)"}
                       </span>
                     </div>
                     <div style={{ height: "8px", backgroundColor: "#221c13", borderRadius: "4px", overflow: "hidden" }}>
@@ -372,7 +385,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                         <Sparkles size={14} /> Chaos Resistance
                       </span>
                       <span style={{ fontWeight: 700, color: chaosRes >= 75 ? "#f1c40f" : "#d7bde2" }}>
-                        {chaosRes}% / 75% {chaosRes >= 75 && "✨ (CAP)"}
+                        {chaosRes}% / 75% {chaosRes >= 75 && "(MAX)"}
                       </span>
                     </div>
                     <div style={{ height: "8px", backgroundColor: "#1d1622", borderRadius: "4px", overflow: "hidden" }}>
@@ -438,7 +451,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                 <div>
                   <div style={{ fontSize: "12px", color: "#8a7d69" }}>PRIMARY ACTIVE SKILL</div>
                   <div style={{ fontSize: "22px", fontWeight: 700, color: "#f4d03f", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span>{mainSkill?.icon || "⚔️"}</span>
+                    <GemIcon gemId={mainGemId || null} size={22} color="#f4d03f" />
                     <span>{mainSkill?.name || "Default Strike"}</span>
                   </div>
                   <div style={{ fontSize: "12px", color: "#bdae93", marginTop: "4px" }}>
@@ -554,7 +567,9 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: "32px", textAlign: "center", marginBottom: "8px" }}>{asc.icon}</div>
+                        <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
+                          <AscendancySubclassIcon id={asc.id} size={36} color="#f1c40f" />
+                        </div>
                         <div style={{ fontSize: "16px", fontWeight: 700, color: "#f1c40f", textAlign: "center" }}>
                           {asc.name}
                         </div>
@@ -634,7 +649,6 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                         >
                           <div
                             style={{
-                              fontSize: "28px",
                               width: "48px",
                               height: "48px",
                               backgroundColor: isAllocated ? "#423214" : "#1f1a14",
@@ -645,7 +659,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                               border: `1px solid ${isAllocated ? "#f39c12" : "#423522"}`
                             }}
                           >
-                            {node.icon}
+                            <Sparkles size={22} color={isAllocated ? "#f1c40f" : "#a89980"} />
                           </div>
 
                           <div style={{ flex: 1 }}>
@@ -680,7 +694,9 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
                 {/* STR */}
                 <div style={{ backgroundColor: "#191110", border: "1px solid #78281f", padding: "18px", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "13px", color: "#e74c3c", fontWeight: 700 }}>🔴 STRENGTH (STR)</div>
+                  <div style={{ fontSize: "13px", color: "#e74c3c", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <CircleDot size={14} color="#e74c3c" /> STRENGTH (STR)
+                  </div>
                   <div style={{ fontSize: "30px", fontWeight: 900, color: "#f5b7b1", margin: "8px 0" }}>
                     {player.strength || 23}
                   </div>
@@ -692,7 +708,9 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
 
                 {/* DEX */}
                 <div style={{ backgroundColor: "#101912", border: "1px solid #1e8449", padding: "18px", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "13px", color: "#2ecc71", fontWeight: 700 }}>🟢 DEXTERITY (DEX)</div>
+                  <div style={{ fontSize: "13px", color: "#2ecc71", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <CircleDot size={14} color="#2ecc71" /> DEXTERITY (DEX)
+                  </div>
                   <div style={{ fontSize: "30px", fontWeight: 900, color: "#a9dfbf", margin: "8px 0" }}>
                     {player.dexterity || 23}
                   </div>
@@ -704,7 +722,9 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
 
                 {/* INT */}
                 <div style={{ backgroundColor: "#10151c", border: "1px solid #2874a6", padding: "18px", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "13px", color: "#3498db", fontWeight: 700 }}>🔵 INTELLIGENCE (INT)</div>
+                  <div style={{ fontSize: "13px", color: "#3498db", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <CircleDot size={14} color="#3498db" /> INTELLIGENCE (INT)
+                  </div>
                   <div style={{ fontSize: "30px", fontWeight: 900, color: "#aed6f1", margin: "8px 0" }}>
                     {player.intelligence || 14}
                   </div>

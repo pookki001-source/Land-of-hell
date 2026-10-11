@@ -338,7 +338,7 @@ export const PassiveTreeModal: React.FC<PassiveTreeModalProps> = ({
                   {isKeystone ? (
                     /* Keystone: Diamond Shape */
                     <polygon
-                      points={`0,-${radius} ${radius},0 0 traditions ${radius} -${radius},0`}
+                      points={`0,-${radius} ${radius},0 0,${radius} -${radius},0`}
                       fill={fillColor}
                       stroke={strokeColor}
                       strokeWidth={strokeWidth}
@@ -355,16 +355,61 @@ export const PassiveTreeModal: React.FC<PassiveTreeModalProps> = ({
                     />
                   )}
 
-                  {/* Icon */}
-                  <text
-                    x={0}
-                    y={isStart ? 10 : isKeystone ? 7 : isNotable ? 5 : 4}
-                    textAnchor="middle"
-                    fontSize={isStart ? 24 : isKeystone ? 18 : isNotable ? 14 : 9}
-                    pointerEvents="none"
-                  >
-                    {node.icon}
-                  </text>
+                  {/* Inner Constellation Jewel / Core (PoE Style) */}
+                  {isKeystone && (
+                    <polygon
+                      points={`0,-${radius * 0.55} ${radius * 0.55},0 0,${radius * 0.55} -${radius * 0.55},0`}
+                      fill={isAllocated ? "#ff7675" : "rgba(231, 76, 60, 0.4)"}
+                      stroke="#ff7675"
+                      strokeWidth={1}
+                    />
+                  )}
+
+                  {isNotable && (
+                    <>
+                      <circle
+                        cx={0}
+                        cy={0}
+                        r={radius * 0.5}
+                        fill={isAllocated ? "#f39c12" : "rgba(243, 156, 18, 0.35)"}
+                      />
+                      <circle
+                        cx={0}
+                        cy={0}
+                        r={radius * 0.22}
+                        fill={isAllocated ? "#ffffff" : "#f1c40f"}
+                      />
+                    </>
+                  )}
+
+                  {isStart && (
+                    <>
+                      <circle
+                        cx={0}
+                        cy={0}
+                        r={radius * 0.65}
+                        fill="none"
+                        stroke="#d4ac0d"
+                        strokeWidth={1.5}
+                        strokeDasharray="4,3"
+                      />
+                      <circle
+                        cx={0}
+                        cy={0}
+                        r={radius * 0.35}
+                        fill="#f1c40f"
+                      />
+                    </>
+                  )}
+
+                  {!isKeystone && !isNotable && !isStart && (
+                    <circle
+                      cx={0}
+                      cy={0}
+                      r={radius * 0.45}
+                      fill={isAllocated ? "#f1c40f" : isReachable ? "rgba(212, 172, 13, 0.7)" : "#4a3c2c"}
+                    />
+                  )}
                 </g>
               );
             })}
@@ -445,10 +490,10 @@ export const PassiveTreeModal: React.FC<PassiveTreeModalProps> = ({
               }}
             >
               {allocatedNodeIds.includes(hoveredNode.node.id)
-                ? "✓ Allocated (Click to Refund)"
+                ? "[Allocated] Click to Refund"
                 : reachableNodeIds.has(hoveredNode.node.id)
-                ? "⚡ Reachable (Click to Allocate: 1 Point)"
-                : "🔒 Locked (Path not connected)"}
+                ? "[Available] Click to Allocate (1 Point)"
+                : "[Locked] Path not connected"}
             </div>
           </div>
         )}

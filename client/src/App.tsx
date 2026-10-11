@@ -166,7 +166,7 @@ export const App: React.FC = () => {
           // Check Level Up
           if (local.level && local.level > prevLevelRef.current) {
             sounds.playLevelUp();
-            showPopupNotification(`⚡ LEVEL UP! You reached Level ${local.level}!`);
+            showPopupNotification(`LEVEL UP! You reached Level ${local.level}!`);
             prevLevelRef.current = local.level;
           }
 
@@ -302,7 +302,7 @@ export const App: React.FC = () => {
       };
     });
     if (ascendancyId) {
-      showPopupNotification(`⚡ Ascended to ${ascendancyId.toUpperCase()}! New Ascendancy notables unlocked!`);
+      showPopupNotification(`Ascended to ${ascendancyId.toUpperCase()}! New Ascendancy notables unlocked!`);
     } else {
       showPopupNotification("Ascendancy reset! Choose a new path at the Altar.");
     }

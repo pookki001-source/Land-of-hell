@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { SKILL_GEMS, SkillGem, GemColor, calculateLinkedSkill } from "../data/gemData";
 import { GameItem, EquippedGear } from "../data/itemData";
 import { sounds } from "../utils/soundEffects";
-import { X, Sparkles, RefreshCw, Zap, Shield, Link2, Plus, Trash2 } from "lucide-react";
+import { X, Sparkles, RefreshCw, Zap, Shield, Link2, Plus, Trash2, Palette, CircleDot } from "lucide-react";
+import { GemIcon } from "./GemIconHelper";
 
 export interface SocketsSetup {
   slot: "mainHand" | "bodyArmour";
@@ -192,7 +193,9 @@ export const GemSocketModal: React.FC<GemSocketModalProps> = ({
             letterSpacing: "1.5px"
           }}
         >
-          <div>💎 SKILL GEMS & SOCKET LINKING FORGE</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Sparkles size={16} color="#1abc9c" /> SKILL GEMS & SOCKET LINKING FORGE
+          </div>
           <button
             onClick={onClose}
             style={{
@@ -282,7 +285,7 @@ export const GemSocketModal: React.FC<GemSocketModalProps> = ({
                       >
                         {gem ? (
                           <>
-                            <span style={{ fontSize: "22px" }}>{gem.icon}</span>
+                            <GemIcon gemId={gem.id} size={22} color={colorHex} />
                             <span
                               style={{
                                 fontSize: "8px",
@@ -331,15 +334,15 @@ export const GemSocketModal: React.FC<GemSocketModalProps> = ({
                 }}
               >
                 <button onClick={handleRerollColors} style={craftBtnStyle} title="Re-roll Socket Colors">
-                  <span>🌈</span>
+                  <Palette size={16} color="#e67e22" />
                   <span>Chromatic Orb (Colors)</span>
                 </button>
                 <button onClick={handleRerollSockets} style={craftBtnStyle} title="Re-roll Number of Sockets">
-                  <span>🔵</span>
+                  <CircleDot size={16} color="#3498db" />
                   <span>Jeweller's Orb (Sockets)</span>
                 </button>
                 <button onClick={handleRerollLinks} style={craftBtnStyle} title="Re-roll Socket Links">
-                  <span>🟡</span>
+                  <Link2 size={16} color="#f1c40f" />
                   <span>Orb of Fusing (Links)</span>
                 </button>
               </div>
@@ -365,8 +368,8 @@ export const GemSocketModal: React.FC<GemSocketModalProps> = ({
               ) : (
                 activeSkillsLinked.map(({ active, supports, calculation }, idx) => (
                   <div key={idx} style={{ lineHeight: "1.6" }}>
-                    <span style={{ color: "#f1c40f", fontWeight: 700 }}>
-                      {active.icon} {active.name}:
+                    <span style={{ color: "#f1c40f", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                      <GemIcon gemId={active.id} size={15} color="#f1c40f" /> {active.name}:
                     </span>{" "}
                     <span style={{ color: "#ecf0f1" }}>
                       DPS: {Math.round(calculation.dpsMultiplier * 100)}% • Projectiles:{" "}
@@ -443,7 +446,7 @@ export const GemSocketModal: React.FC<GemSocketModalProps> = ({
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "20px" }}>{gem.icon}</span>
+                        <GemIcon gemId={gem.id} size={22} color={colorHex} />
                         <div>
                           <div style={{ fontSize: "12px", fontWeight: 700, color: "#f5e6ca" }}>
                             {gem.name}

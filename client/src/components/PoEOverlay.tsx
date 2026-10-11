@@ -10,9 +10,15 @@ import {
   MessageSquare,
   Sparkles,
   RefreshCw,
-  Coins
+  Coins,
+  ScrollText,
+  CircleDot,
+  SunMedium,
+  Skull,
+  Activity
 } from "lucide-react";
 import { SKILL_GEMS } from "../data/gemData";
+import { GemIcon, FlaskBottleIcon } from "./GemIconHelper";
 
 interface PoEOverlayProps {
   room: Room<any> | null;
@@ -141,28 +147,28 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="Scroll of Wisdom">
-            <span style={{ fontSize: "14px" }}>📜</span>
+            <ScrollText size={15} color="#c9b99a" />
             <span style={{ fontSize: "13px", color: "#c9b99a", fontWeight: 600 }}>
               {localPlayer?.wisdomScrolls || 0}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="Chaos Orb">
-            <span style={{ fontSize: "14px" }}>🟡</span>
+            <CircleDot size={15} color="#f1c40f" />
             <span style={{ fontSize: "13px", color: "#f1c40f", fontWeight: 700 }}>
               {localPlayer?.chaosOrbs || 0} Chaos
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="Divine Orb">
-            <span style={{ fontSize: "14px" }}>🌟</span>
+            <SunMedium size={15} color="#f39c12" />
             <span style={{ fontSize: "13px", color: "#f39c12", fontWeight: 700 }}>
               {localPlayer?.divineOrbs || 0} Divine
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="Total Monsters Slain">
-            <Sword size={14} color="#e74c3c" />
+            <Skull size={15} color="#e74c3c" />
             <span style={{ fontSize: "12px", color: "#e74c3c", fontWeight: 600 }}>
               {localPlayer?.kills || 0} Kills
             </span>
@@ -228,7 +234,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               boxShadow: "0 0 10px rgba(195, 155, 83, 0.25)"
             }}
           >
-            📜 Stats (C)
+            <Activity size={14} color="#f1c40f" /> Stats (C)
           </button>
 
           <button
@@ -248,7 +254,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               boxShadow: "0 0 10px rgba(155, 89, 182, 0.25)"
             }}
           >
-            🌌 Tree (P)
+            <Compass size={14} color="#d7bde2" /> Tree (P)
           </button>
 
           <button
@@ -268,7 +274,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               boxShadow: "0 0 10px rgba(212, 172, 13, 0.25)"
             }}
           >
-            🎒 Gear (I)
+            <Shield size={14} color="#f9e79f" /> Gear (I)
           </button>
 
           <button
@@ -288,7 +294,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               boxShadow: "0 0 10px rgba(26, 188, 156, 0.25)"
             }}
           >
-            💎 Sockets (G)
+            <Sparkles size={14} color="#a3e4d7" /> Sockets (G)
           </button>
 
           <button
@@ -659,7 +665,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
             }}
           >
             <Sword size={18} color={isAuto ? "#ffffff" : "#f1c40f"} />
-            {isAuto ? "AUTO FARM: ACTIVE ⚡" : "ACTIVATE AUTO FARM"}
+            {isAuto ? "AUTO FARM: ACTIVE" : "ACTIVATE AUTO FARM"}
           </button>
 
           {/* PoE Skill & Flask Bar */}
@@ -679,11 +685,11 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
               <div
                 key={flask}
                 style={{
-                  width: "36px",
-                  height: "50px",
+                  width: "38px",
+                  height: "52px",
                   backgroundColor: "#161311",
                   border: "1px solid #4a3e30",
-                  borderRadius: "3px",
+                  borderRadius: "4px",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -692,8 +698,8 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
                   fontSize: "10px"
                 }}
               >
-                <span style={{ color: "#8a7e6b" }}>{idx + 1}</span>
-                <span style={{ fontSize: "14px" }}>🧪</span>
+                <span style={{ color: "#8a7e6b", fontSize: "9px", fontWeight: 700 }}>{idx + 1}</span>
+                <FlaskBottleIcon type={flask as any} size={18} />
                 <span style={{ fontSize: "8px", color: "#c9b99a" }}>{flask}</span>
               </div>
             ))}
@@ -708,10 +714,10 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
                 .filter((g: any) => g && g.type === "active");
 
               const defaultSkills = [
-                { key: "LMB", name: "Strike", icon: "⚔️", color: "red", cost: 0 },
-                { key: "Q", name: "Cleave", icon: "🪓", color: "red", cost: 8 },
-                { key: "W", name: "Dash", icon: "💨", color: "green", cost: 5 },
-                { key: "E", name: "Molten", icon: "🌋", color: "red", cost: 9 }
+                { key: "LMB", name: "Strike", gemId: "heavy_strike", color: "red", cost: 0 },
+                { key: "Q", name: "Cleave", gemId: "cleave", color: "red", cost: 8 },
+                { key: "W", name: "Split Arrow", gemId: "split_arrow", color: "green", cost: 7 },
+                { key: "E", name: "Molten", gemId: "molten_strike", color: "red", cost: 9 }
               ];
 
               const renderedSkills = defaultSkills.map((def, idx) => {
@@ -720,7 +726,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
                   return {
                     key: def.key,
                     name: socketed.name,
-                    icon: socketed.icon,
+                    gemId: socketed.id,
                     color: socketed.color,
                     cost: socketed.manaCost
                   };
@@ -750,7 +756,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "3px 2px",
+                    padding: "4px 2px",
                     fontSize: "10px",
                     cursor: "pointer",
                     boxShadow: "0 2px 5px rgba(0,0,0,0.4)",
@@ -759,7 +765,7 @@ export const PoEOverlay: React.FC<PoEOverlayProps> = ({
                   title={`Skill: ${skill.name} (${skill.cost} Mana) - Click to configure sockets`}
                 >
                   <span style={{ color: "#f0dfb6", fontWeight: 700, fontSize: "9px" }}>{skill.key}</span>
-                  <span style={{ fontSize: "16px" }}>{skill.icon}</span>
+                  <GemIcon gemId={skill.gemId} size={18} color="#f0dfb6" />
                   <span
                     style={{
                       fontSize: "8px",
