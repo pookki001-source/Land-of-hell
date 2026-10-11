@@ -15,7 +15,7 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.json({
     status: "online",
-    game: "Path of Exile: Idle Online Server",
+    game: "Land of Hell: Idle Online Server",
     time: new Date().toISOString()
   });
 });
@@ -32,6 +32,6 @@ gameServer.define("town", TownRoom);
 gameServer.define("map", MapRoom);
 
 gameServer.listen(port).then(() => {
-  console.log(`⚔️ [POE Idle Server] Running on http://localhost:${port}`);
+  console.log(`⚔️ [Land of Hell Server] Running on http://localhost:${port}`);
   console.log(`🌐 WebSocket Game Server active on ws://localhost:${port}`);
 });

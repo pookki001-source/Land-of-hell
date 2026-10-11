@@ -15,7 +15,7 @@ export const App: React.FC = () => {
   const [room, setRoom] = useState<Room<any> | null>(null);
   const [zoneType, setZoneType] = useState<"town" | "map">("town");
   const [playerData, setPlayerData] = useState<LocalPlayerData>(() => {
-    const saved = localStorage.getItem("poe_idle_char");
+    const saved = localStorage.getItem("land_of_hell_char");
     if (saved) {
       try {
         return { ...defaultPlayerData, ...JSON.parse(saved) };
@@ -25,14 +25,14 @@ export const App: React.FC = () => {
   });
   const [localPlayerState, setLocalPlayerState] = useState<any>(null);
   const [onlineCount, setOnlineCount] = useState<number>(1);
-  const [statusMessage, setStatusMessage] = useState<string>("Connecting to PoE Idle Realm...");
+  const [statusMessage, setStatusMessage] = useState<string>("Connecting to Land of Hell Realm...");
   const [notification, setNotification] = useState<string | null>(null);
 
   const prevLevelRef = useRef<number>(playerData.level);
 
   // Save character data to localStorage on change
   useEffect(() => {
-    localStorage.setItem("poe_idle_char", JSON.stringify(playerData));
+    localStorage.setItem("land_of_hell_char", JSON.stringify(playerData));
   }, [playerData]);
 
   // Connect to Town on initial load
@@ -202,7 +202,7 @@ export const App: React.FC = () => {
           }}
         >
           <div style={{ fontSize: "24px", fontWeight: 700, marginBottom: "16px", letterSpacing: "2px" }}>
-            PATH OF EXILE: IDLE ONLINE
+            LAND OF HELL: IDLE ONLINE
           </div>
           <div style={{ fontSize: "14px", color: "#c9b99a" }}>{statusMessage}</div>
         </div>

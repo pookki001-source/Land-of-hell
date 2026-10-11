@@ -1,4 +1,4 @@
-# Path of Exile: Idle Online (Web ARPG)
+# Land of Hell: Idle Online (Web ARPG)
 
 เกมออนไลน์แนว **Semi-Idle ARPG** บนเว็บที่ได้แรงบันดาลใจจาก **Path of Exile** (PoE)
 จำลองระบบ **Instanced Hub + Map Architecture**, ระบบคลิกเดิน, ปาร์ตี้, ฟาร์ม Currency และปุ่ม **[AUTO FARM]**

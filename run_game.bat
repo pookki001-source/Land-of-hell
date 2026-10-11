@@ -1,11 +1,11 @@
 @echo off
 echo ========================================================
-echo        Starting Path of Exile: Idle Online
+echo        Starting Land of Hell: Idle Online
 echo ========================================================
 
-start "POE Idle Server" cmd /k "cd /d %~dp0server && npm.cmd run dev"
+start "Land of Hell Server" cmd /k "cd /d %~dp0server && npm.cmd run dev"
 timeout /t 3 /nobreak > nul
-start "POE Idle Client" cmd /k "cd /d %~dp0client && npm.cmd run dev"
+start "Land of Hell Client" cmd /k "cd /d %~dp0client && npm.cmd run dev"
 
 timeout /t 2 /nobreak > nul
 start http://localhost:3000
