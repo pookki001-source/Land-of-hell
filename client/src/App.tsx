@@ -10,6 +10,7 @@ import {
 import { GameCanvas } from "./game/GameCanvas";
 import { PoEOverlay } from "./components/PoEOverlay";
 import { sounds } from "./utils/soundEffects";
+import { saveCharacterToCloud, loadCharacterFromCloud } from "./network/supabaseClient";
 
 export const App: React.FC = () => {
   const [room, setRoom] = useState<Room<any> | null>(null);
@@ -30,9 +31,16 @@ export const App: React.FC = () => {
 
   const prevLevelRef = useRef<number>(playerData.level);
 
-  // Save character data to localStorage on change
+  // Save character data to localStorage and Supabase Cloud on change
   useEffect(() => {
     localStorage.setItem("land_of_hell_char", JSON.stringify(playerData));
+
+    // Debounced Cloud Save to Supabase
+    const timer = setTimeout(() => {
+      saveCharacterToCloud(playerData);
+    }, 5000);
+
+    return () => clearTimeout(timer);
   }, [playerData]);
 
   // Connect to Town on initial load
