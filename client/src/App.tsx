@@ -412,6 +412,7 @@ export const App: React.FC = () => {
           <GameCanvas
             room={room}
             zoneType={zoneType}
+            localPlayer={activeCharacter}
             onEnterPortal={zoneType === "town" ? handleEnterPortal : handleReturnToTown}
           />
 
