@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <!-- Bone Shading Gradient -->
+    <linearGradient id="bleachedBone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f2f4f4" />
+      <stop offset="60%" stop-color="#d5dbdb" />
+      <stop offset="100%" stop-color="#99a3a4" />
+    </linearGradient>
+    <radialGradient id="skeleEye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f1c40f" />
+      <stop offset="100%" stop-color="#d35400" />
+    </radialGradient>
+  </defs>
+
+  <!-- 1. Drop Shadow under bony feet -->
+  <ellipse cx="32" cy="58" rx="14" ry="4" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Articulated Leg Bones -->
+  <line x1="27" y1="42" x2="25" y2="50" stroke="url(#bleachedBone)" stroke-width="2.5" />
+  <line x1="25" y1="50" x2="24" y2="57" stroke="url(#bleachedBone)" stroke-width="2.2" />
+  <line x1="37" y1="42" x2="39" y2="50" stroke="url(#bleachedBone)" stroke-width="2.5" />
+  <line x1="39" y1="50" x2="40" y2="57" stroke="url(#bleachedBone)" stroke-width="2.2" />
+
+  <!-- 3. Pelvis & Spine -->
+  <path d="M25 41 Q32 44 39 41 Q32 38 25 41 Z" fill="url(#bleachedBone)" stroke="#566573" stroke-width="0.8" />
+  <line x1="32" y1="24" x2="32" y2="40" stroke="url(#bleachedBone)" stroke-width="3" stroke-linecap="round" />
+
+  <!-- 4. Ribcage Cage Anatomy -->
+  <path d="M26 27 Q32 29 38 27" fill="none" stroke="url(#bleachedBone)" stroke-width="2" stroke-linecap="round" />
+  <path d="M24 31 Q32 34 40 31" fill="none" stroke="url(#bleachedBone)" stroke-width="2" stroke-linecap="round" />
+  <path d="M25 35 Q32 38 39 35" fill="none" stroke="url(#bleachedBone)" stroke-width="2" stroke-linecap="round" />
+  <path d="M27 39 Q32 41 37 39" fill="none" stroke="url(#bleachedBone)" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- 5. Weathered Bone Bow (Held by Skeletal Left Arm) -->
+  <path d="M48 8 Q56 26 48 46" fill="none" stroke="#7f8c8d" stroke-width="2.8" stroke-linecap="round" />
+  <line x1="48" y1="9" x2="48" y2="45" stroke="#ecf0f1" stroke-width="0.8" opacity="0.8" />
+  <!-- Drawn Arrow -->
+  <line x1="28" y1="26" x2="52" y2="26" stroke="#d4ac0d" stroke-width="1.2" />
+  <polygon points="52,24 56,26 52,28" fill="#e74c3c" />
+
+  <!-- Bony Arms -->
+  <line x1="24" y1="24" x2="16" y2="28" stroke="url(#bleachedBone)" stroke-width="2" />
+  <line x1="16" y1="28" x2="28" y2="26" stroke="url(#bleachedBone)" stroke-width="1.8" />
+  <line x1="40" y1="24" x2="49" y2="26" stroke="url(#bleachedBone)" stroke-width="2" />
+
+  <!-- 6. Intricate Skull -->
+  <ellipse cx="32" cy="15" rx="6.5" ry="7.5" fill="url(#bleachedBone)" stroke="#566573" stroke-width="1" />
+  <!-- Maxilla & Teeth -->
+  <rect x="29" y="19" width="6" height="4" fill="url(#bleachedBone)" stroke="#566573" stroke-width="0.8" />
+  <line x1="31" y1="19" x2="31" y2="23" stroke="#2c3e50" stroke-width="0.6" />
+  <line x1="33" y1="19" x2="33" y2="23" stroke="#2c3e50" stroke-width="0.6" />
+  <!-- Eye Sockets with Glowing Soul Fire -->
+  <ellipse cx="29.5" cy="14" rx="2" ry="2.2" fill="#1c2833" />
+  <ellipse cx="34.5" cy="14" rx="2" ry="2.2" fill="#1c2833" />
+  <circle cx="29.5" cy="14" r="1.1" fill="url(#skeleEye)" />
+  <circle cx="34.5" cy="14" r="1.1" fill="url(#skeleEye)" />
+  <!-- Nasal Cavity -->
+  <polygon points="32,16 31,18 33,18" fill="#1c2833" />
+</svg>

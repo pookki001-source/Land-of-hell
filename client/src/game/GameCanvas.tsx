@@ -12,6 +12,7 @@ import {
   Particle,
   BloodDecal
 } from "./darkFantasyRenderer";
+import { assetLoader } from "./assetLoader";
 
 interface FloatingText {
   id: number;
@@ -83,6 +84,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
     rainDropsRef.current = drops;
+
+    // Preload image sprites and textures
+    assetLoader.preloadAll();
   }, []);
 
   // Trigger screen shake utility

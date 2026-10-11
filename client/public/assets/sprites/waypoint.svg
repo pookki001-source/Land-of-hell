@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <!-- Glowing Runic Radial Gradient -->
+    <radialGradient id="waypointGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2ecc71" stop-opacity="0.9" />
+      <stop offset="45%" stop-color="#1abc9c" stop-opacity="0.6" />
+      <stop offset="85%" stop-color="#16a085" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0e6251" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="portalEye" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#a3e4d7" />
+      <stop offset="100%" stop-color="#1abc9c" />
+    </radialGradient>
+    <!-- Stone Shading Gradient -->
+    <linearGradient id="stonePlinth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3d352c" />
+      <stop offset="60%" stop-color="#241e18" />
+      <stop offset="100%" stop-color="#15120e" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Soft Base Drop Shadow -->
+  <ellipse cx="64" cy="74" rx="58" ry="34" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Outer Octagonal Stone Platform -->
+  <polygon points="40,24 88,24 116,52 116,84 88,112 40,112 12,84 12,52"
+           fill="url(#stonePlinth)" stroke="#4a3e30" stroke-width="2.5" />
+
+  <!-- Stone Bevel Trim -->
+  <polygon points="44,28 84,28 110,54 110,82 84,108 44,108 18,82 18,54"
+           fill="#1e1813" stroke="#2e251c" stroke-width="1.5" />
+
+  <!-- 3. Ancient Runic Ring -->
+  <circle cx="64" cy="68" r="38" fill="#14110d" stroke="#5d4c38" stroke-width="2" />
+  <circle cx="64" cy="68" r="32" fill="none" stroke="#1abc9c" stroke-width="1" stroke-dasharray="8,4" opacity="0.8" />
+
+  <!-- 4. Glowing Karui Energy Pool -->
+  <circle cx="64" cy="68" r="28" fill="url(#waypointGlow)" />
+
+  <!-- 5. Surrounding Monolith Standing Stones (North, South, East, West) -->
+  <!-- North Monolith -->
+  <polygon points="60,16 68,16 71,32 57,32" fill="#382f25" stroke="#4d3f32" stroke-width="1" />
+  <line x1="64" y1="18" x2="64" y2="30" stroke="#1abc9c" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- South Monolith -->
+  <polygon points="58,104 70,104 67,118 61,118" fill="#30271e" stroke="#44372a" stroke-width="1" />
+  <line x1="64" y1="106" x2="64" y2="116" stroke="#1abc9c" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- West Monolith -->
+  <polygon points="10,62 10,74 24,71 24,65" fill="#352c22" stroke="#483b2d" stroke-width="1" />
+  <line x1="12" y1="68" x2="22" y2="68" stroke="#1abc9c" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- East Monolith -->
+  <polygon points="104,65 104,71 118,74 118,62" fill="#2d241b" stroke="#3f3224" stroke-width="1" />
+  <line x1="106" y1="68" x2="116" y2="68" stroke="#1abc9c" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- 6. Glowing Center Waypoint Core -->
+  <circle cx="64" cy="68" r="10" fill="url(#portalEye)" />
+  <circle cx="64" cy="68" r="4" fill="#ffffff" />
+</svg>

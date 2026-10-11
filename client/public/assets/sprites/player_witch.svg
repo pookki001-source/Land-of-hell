@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <!-- Occult Robe Gradient -->
+    <linearGradient id="witchRobe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#512e5f" />
+      <stop offset="50%" stop-color="#341842" />
+      <stop offset="100%" stop-color="#1b0a23" />
+    </linearGradient>
+    <!-- Energy Shield Aura Glow -->
+    <radialGradient id="esGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5dade2" stop-opacity="0.7" />
+      <stop offset="60%" stop-color="#9b59b6" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8e44ad" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="orbGlow" cx="50%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#d7bde2" />
+      <stop offset="100%" stop-color="#8e44ad" />
+    </radialGradient>
+  </defs>
+
+  <!-- 1. Drop Shadow under feet -->
+  <ellipse cx="32" cy="58" rx="15" ry="4.5" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Occult Ethereal Aura Circle -->
+  <circle cx="32" cy="34" r="24" fill="url(#esGlow)" />
+
+  <!-- 3. Flowing Dark Robes (Skirt / Hem) -->
+  <path d="M21 26 L17 56 Q32 58 47 56 L43 26 Z" fill="url(#witchRobe)" stroke="#110517" stroke-width="1.5" />
+  <!-- Runic Embroidery Hem -->
+  <path d="M18 53 Q32 55 46 53" fill="none" stroke="#af7ac5" stroke-width="1.2" stroke-dasharray="3,2" />
+
+  <!-- 4. Sorceress Bodice & Mantle -->
+  <path d="M23 21 H41 L39 40 H25 Z" fill="#2c1437" stroke="#110517" stroke-width="1.5" />
+  <!-- Silver Occult Pendant -->
+  <polygon points="32,26 34,31 32,34 30,31" fill="#ecf0f1" stroke="#8e44ad" stroke-width="0.8" />
+
+  <!-- 5. Sorceress Hood & Mystical Eyes -->
+  <path d="M21 21 Q32 9 43 21 Q40 25 32 26 Q24 25 21 21 Z" fill="url(#witchRobe)" stroke="#110517" stroke-width="1.2" />
+  <ellipse cx="32" cy="16" rx="7.5" ry="8" fill="url(#witchRobe)" stroke="#110517" stroke-width="1.5" />
+  <!-- Shrouded Face -->
+  <ellipse cx="32" cy="17" rx="5" ry="4" fill="#0d0411" />
+  <circle cx="29.5" cy="17" r="1.1" fill="#a569bd" />
+  <circle cx="34.5" cy="17" r="1.1" fill="#a569bd" />
+
+  <!-- 6. Arcane Staff with Glowing Amethyst Crystal -->
+  <g transform="translate(16, 2)">
+    <!-- Staff Shaft -->
+    <line x1="32" y1="6" x2="32" y2="54" stroke="#2c1d11" stroke-width="3" stroke-linecap="round" />
+    <line x1="32" y1="8" x2="32" y2="52" stroke="#4a3220" stroke-width="1.5" />
+    <!-- Prongs / Staff Head -->
+    <path d="M28 14 Q32 18 36 14 Q36 6 32 4 Q28 6 28 14 Z" fill="#3e2723" stroke="#d4ac0d" stroke-width="1" />
+    <!-- Floating Arcane Orb -->
+    <circle cx="32" cy="10" r="5" fill="url(#orbGlow)" />
+    <circle cx="32" cy="10" r="2" fill="#ffffff" />
+  </g>
+</svg>

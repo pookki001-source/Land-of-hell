@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <!-- Forest Green Leather Gradient -->
+    <linearGradient id="rangerLeather" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#27ae60" />
+      <stop offset="60%" stop-color="#196f3d" />
+      <stop offset="100%" stop-color="#0e3d22" />
+    </linearGradient>
+    <!-- Bow Wood Gradient -->
+    <linearGradient id="bowWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8d6e63" />
+      <stop offset="50%" stop-color="#5d4037" />
+      <stop offset="100%" stop-color="#3e2723" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Drop Shadow under feet -->
+  <ellipse cx="32" cy="58" rx="15" ry="4.5" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Quiver with Arrows on Back -->
+  <g transform="rotate(22 24 28)">
+    <rect x="22" y="16" width="6" height="24" rx="2" fill="#4e342e" stroke="#271c19" stroke-width="1" />
+    <!-- Feather Fletchings -->
+    <line x1="23" y1="16" x2="21" y2="9" stroke="#bdc3c7" stroke-width="1.8" />
+    <line x1="25" y1="16" x2="25" y2="7" stroke="#e74c3c" stroke-width="1.8" />
+    <line x1="27" y1="16" x2="29" y2="9" stroke="#bdc3c7" stroke-width="1.8" />
+  </g>
+
+  <!-- 3. Agile Leather Boots & Trousers -->
+  <rect x="25" y="45" width="5.5" height="12" rx="2" fill="#3e2723" stroke="#1d120f" stroke-width="1" />
+  <rect x="33.5" y="45" width="5.5" height="12" rx="2" fill="#4e342e" stroke="#1d120f" stroke-width="1" />
+  <ellipse cx="27" cy="56" rx="3.5" ry="2" fill="#2e1c14" />
+  <ellipse cx="36" cy="56" rx="3.5" ry="2" fill="#2e1c14" />
+
+  <!-- 4. Studded Leather Tunic (Torso) -->
+  <path d="M23 23 H41 L39 46 H25 Z" fill="url(#rangerLeather)" stroke="#0c2e1b" stroke-width="1.5" />
+  <!-- Studs / Rivets -->
+  <circle cx="28" cy="28" r="1.2" fill="#d4ac0d" />
+  <circle cx="36" cy="28" r="1.2" fill="#d4ac0d" />
+  <circle cx="28" cy="35" r="1.2" fill="#d4ac0d" />
+  <circle cx="36" cy="35" r="1.2" fill="#d4ac0d" />
+  <!-- Leather Belt -->
+  <rect x="24" y="41" width="16" height="4" fill="#3e2723" />
+  <rect x="30.5" y="41" width="3" height="4" fill="#bdc3c7" />
+
+  <!-- 5. Hunter's Hood & Cowl -->
+  <path d="M22 23 Q32 10 42 23 Q40 27 32 28 Q24 27 22 23 Z" fill="url(#rangerLeather)" stroke="#0c2e1b" stroke-width="1" />
+  <ellipse cx="32" cy="17" rx="7.5" ry="8.5" fill="url(#rangerLeather)" stroke="#0c2e1b" stroke-width="1.5" />
+  <!-- Face Shadow in Hood & Keen Eyes -->
+  <path d="M26 16 Q32 13 38 16 Q36 21 32 21 Q28 21 26 16 Z" fill="#14110e" />
+  <circle cx="29" cy="18" r="1" fill="#2ecc71" />
+  <circle cx="35" cy="18" r="1" fill="#2ecc71" />
+
+  <!-- 6. Elegant Recurve Bow (Held in Left Hand) -->
+  <g transform="translate(6, 4)">
+    <!-- Curved Bow Stave -->
+    <path d="M42 2 Q54 26 42 50" fill="none" stroke="url(#bowWood)" stroke-width="3" stroke-linecap="round" />
+    <path d="M42 2 Q40 0 38 3" fill="none" stroke="#d4ac0d" stroke-width="1.5" />
+    <path d="M42 50 Q40 52 38 49" fill="none" stroke="#d4ac0d" stroke-width="1.5" />
+    <!-- Taut Bowstring -->
+    <line x1="38" y1="3" x2="38" y2="49" stroke="#ffffff" stroke-width="0.8" opacity="0.85" />
+    <!-- Grip Wrapping -->
+    <rect x="46" y="23" width="3" height="6" rx="0.5" fill="#f5cba7" />
+  </g>
+</svg>

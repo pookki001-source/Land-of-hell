@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="84" viewBox="0 0 96 84">
+  <defs>
+    <!-- Wood Plank Gradient -->
+    <linearGradient id="oakWood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4d3824" />
+      <stop offset="50%" stop-color="#3b2b1b" />
+      <stop offset="100%" stop-color="#24190e" />
+    </linearGradient>
+    <!-- Iron Banding Gradient -->
+    <linearGradient id="wroughtIron" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3d4447" />
+      <stop offset="50%" stop-color="#606c72" />
+      <stop offset="100%" stop-color="#2c3235" />
+    </linearGradient>
+    <!-- Gold / Brass Lockplate -->
+    <linearGradient id="brassLock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f1c40f" />
+      <stop offset="60%" stop-color="#b7950b" />
+      <stop offset="100%" stop-color="#7d6608" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Deep Drop Shadow -->
+  <ellipse cx="48" cy="74" rx="42" ry="10" fill="rgba(0, 0, 0, 0.7)" />
+
+  <!-- 2. Chest Lower Body Base -->
+  <rect x="12" y="38" width="72" height="34" rx="3" fill="url(#oakWood)" stroke="#1a120a" stroke-width="2" />
+
+  <!-- Horizontal Wood Plank Seams -->
+  <line x1="12" y1="49" x2="84" y2="49" stroke="#1c130b" stroke-width="1.5" />
+  <line x1="12" y1="60" x2="84" y2="60" stroke="#1c130b" stroke-width="1.5" />
+
+  <!-- 3. Arched Chest Lid -->
+  <path d="M10 38 Q48 16 86 38 Z" fill="url(#oakWood)" stroke="#1a120a" stroke-width="2" />
+  <path d="M12 38 Q48 20 84 38" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" />
+
+  <!-- 4. Heavy Riveted Wrought Iron Braces (Vertical) -->
+  <!-- Left Corner Brace -->
+  <rect x="10" y="36" width="9" height="36" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+  <path d="M10 38 Q20 28 26 38 Z" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+
+  <!-- Right Corner Brace -->
+  <rect x="77" y="36" width="9" height="36" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+  <path d="M70 38 Q76 28 86 38 Z" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+
+  <!-- Center Iron Brace -->
+  <rect x="43" y="36" width="10" height="36" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+  <path d="M43 38 Q48 22 53 38 Z" fill="url(#wroughtIron)" stroke="#1c2124" stroke-width="1" />
+
+  <!-- Iron Rivet Studs -->
+  <circle cx="14" cy="42" r="1.5" fill="#bdc3c7" />
+  <circle cx="14" cy="54" r="1.5" fill="#bdc3c7" />
+  <circle cx="14" cy="66" r="1.5" fill="#bdc3c7" />
+  <circle cx="82" cy="42" r="1.5" fill="#bdc3c7" />
+  <circle cx="82" cy="54" r="1.5" fill="#bdc3c7" />
+  <circle cx="82" cy="66" r="1.5" fill="#bdc3c7" />
+
+  <!-- 5. Heavy Brass Lock Plate & Padlock -->
+  <rect x="42" y="37" width="12" height="14" rx="2" fill="url(#brassLock)" stroke="#564606" stroke-width="1" />
+  <circle cx="48" cy="42" r="2.5" fill="#1e1804" />
+  <polygon points="47,43 49,43 50,47 46,47" fill="#1e1804" />
+  <!-- Shackle loop -->
+  <path d="M44 37 V32 Q48 28 52 32 V37" fill="none" stroke="#d4ac0d" stroke-width="2.5" stroke-linecap="round" />
+</svg>

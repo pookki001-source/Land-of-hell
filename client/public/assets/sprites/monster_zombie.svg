@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <!-- Rotting Flesh Gradient -->
+    <linearGradient id="rottingFlesh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4d5d53" />
+      <stop offset="60%" stop-color="#34433a" />
+      <stop offset="100%" stop-color="#1e2923" />
+    </linearGradient>
+    <radialGradient id="zombieEye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#a3e4d7" />
+      <stop offset="100%" stop-color="#16a085" />
+    </radialGradient>
+  </defs>
+
+  <!-- 1. Drop Shadow under dragging feet -->
+  <ellipse cx="32" cy="58" rx="16" ry="5" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Shambling Crooked Legs -->
+  <line x1="26" y1="44" x2="23" y2="56" stroke="#2c3a32" stroke-width="4.5" stroke-linecap="round" />
+  <line x1="36" y1="44" x2="39" y2="57" stroke="#25322b" stroke-width="4.5" stroke-linecap="round" />
+
+  <!-- 3. Decaying Hunched Torso -->
+  <path d="M22 24 Q28 20 38 22 Q42 36 38 46 Q28 47 22 45 Z" fill="url(#rottingFlesh)" stroke="#151f19" stroke-width="1.5" />
+
+  <!-- Exposed Bone Ribs (Left Chest Cavity) -->
+  <path d="M25 28 Q30 30 34 29" fill="none" stroke="#d5dbdb" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M25 33 Q30 35 34 34" fill="none" stroke="#d5dbdb" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M26 38 Q30 40 33 39" fill="none" stroke="#d5dbdb" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- Tattered Grave Shroud Wrappings -->
+  <path d="M22 36 L18 46 L26 43 L34 46 L38 42" stroke="#4a3e35" stroke-width="1.2" fill="none" />
+
+  <!-- 4. Asymmetric Reaching Rotting Arms -->
+  <!-- Left Lurching Arm -->
+  <path d="M22 25 L12 30 L8 26" fill="none" stroke="url(#rottingFlesh)" stroke-width="3.5" stroke-linecap="round" />
+  <!-- Rotting Claws -->
+  <circle cx="8" cy="26" r="1.5" fill="#141d17" />
+
+  <!-- Right Dragging Arm -->
+  <path d="M38 24 L48 34 L52 44" fill="none" stroke="url(#rottingFlesh)" stroke-width="3.5" stroke-linecap="round" />
+  <circle cx="52" cy="44" r="1.5" fill="#141d17" />
+
+  <!-- 5. Sunken Decayed Skull (Tilted Posture) -->
+  <ellipse cx="30" cy="16" rx="7.5" ry="8.5" fill="url(#rottingFlesh)" stroke="#151f19" stroke-width="1.5" />
+  <!-- Missing Jaw / Hollow Mouth -->
+  <path d="M27 20 Q30 24 34 21 Z" fill="#0d1410" />
+  <!-- Glowing Milky Wight Eyes -->
+  <circle cx="27.5" cy="15" r="1.8" fill="url(#zombieEye)" />
+  <circle cx="33.5" cy="15" r="1.8" fill="url(#zombieEye)" />
+
+  <!-- Dripping Toxic Bile Drop -->
+  <circle cx="30" cy="24" r="1" fill="#2ecc71" opacity="0.8" />
+  <circle cx="31" cy="28" r="0.8" fill="#2ecc71" opacity="0.6" />
+</svg>

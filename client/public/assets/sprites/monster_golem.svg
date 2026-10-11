@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <!-- Roa Hide Gradient -->
+    <linearGradient id="roaHide" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#935116" />
+      <stop offset="50%" stop-color="#6e2c00" />
+      <stop offset="100%" stop-color="#3e1900" />
+    </linearGradient>
+    <radialGradient id="beastEye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#f39c12" />
+      <stop offset="100%" stop-color="#c0392b" />
+    </radialGradient>
+  </defs>
+
+  <!-- 1. Drop Shadow under raptor feet -->
+  <ellipse cx="32" cy="58" rx="18" ry="5.5" fill="rgba(0, 0, 0, 0.65)" />
+
+  <!-- 2. Muscular Bipedal Legs & Raptor Talons -->
+  <!-- Left Leg -->
+  <path d="M25 38 L20 48 L22 57" fill="none" stroke="#512e10" stroke-width="4.5" stroke-linecap="round" />
+  <polygon points="18,57 26,57 22,54" fill="#1f1610" />
+  <!-- Right Leg -->
+  <path d="M38 38 L43 48 L41 57" fill="none" stroke="#663a14" stroke-width="4.5" stroke-linecap="round" />
+  <polygon points="37,57 45,57 41,54" fill="#1f1610" />
+
+  <!-- 3. Tail Balance Plumes -->
+  <path d="M16 34 Q8 32 4 24 Q12 28 20 32" fill="#784212" stroke="#3e1f05" stroke-width="1" />
+  <path d="M16 36 Q6 38 2 34 Q10 38 18 36" fill="#a04000" stroke="#3e1f05" stroke-width="1" />
+
+  <!-- 4. Robust Armored Beast Torso -->
+  <ellipse cx="30" cy="35" rx="14" ry="11" fill="url(#roaHide)" stroke="#2c1403" stroke-width="1.5" />
+  <!-- War Paint Stripes -->
+  <path d="M26 28 L32 38" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" />
+  <path d="M30 26 L36 36" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" />
+
+  <!-- 5. Powerful Extended Neck -->
+  <path d="M36 32 L46 22 L42 16 L32 26 Z" fill="url(#roaHide)" stroke="#2c1403" stroke-width="1.2" />
+
+  <!-- 6. Feathered Head & Razor Beak -->
+  <ellipse cx="45" cy="18" rx="8" ry="6.5" fill="url(#roaHide)" stroke="#2c1403" stroke-width="1.2" />
+  <!-- Razor Curved Beak -->
+  <path d="M49 16 Q60 18 56 25 Q51 24 48 21 Z" fill="#d4ac0d" stroke="#564606" stroke-width="1" />
+  <!-- Crimson Feather Crest -->
+  <path d="M40 14 Q38 4 44 8 Q45 12 43 14" fill="#c0392b" stroke="#78281f" stroke-width="1" />
+  <path d="M43 13 Q43 2 48 6 Q48 10 46 13" fill="#e74c3c" stroke="#78281f" stroke-width="1" />
+  <!-- Fierce Amber Eye -->
+  <circle cx="45" cy="17" r="1.8" fill="url(#beastEye)" />
+  <circle cx="45.5" cy="16.5" r="0.6" fill="#ffffff" />
+</svg>
