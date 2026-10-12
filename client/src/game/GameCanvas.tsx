@@ -61,6 +61,22 @@ const TOWN = {
   npc: [470, 500]
 } as const;
 
+// Invisible Collision Boundary for Town Hub (Lioneye's Watch)
+// Players can move freely within the open courtyard, but cannot walk past the dark perimeter or into props.
+export const isWalkableTown = (wx: number, wy: number): boolean => {
+  const distFromCamp = Math.hypot(wx - TOWN.fire[0], wy - TOWN.fire[1]);
+  if (distFromCamp > 240) return false;
+
+  // Solid prop collision footprints
+  if (Math.hypot(wx - TOWN.fire[0], wy - TOWN.fire[1]) < 26) return false;
+  if (Math.hypot(wx - TOWN.waypoint[0], wy - TOWN.waypoint[1]) < 30) return false;
+  if (Math.hypot(wx - TOWN.stash[0], wy - TOWN.stash[1]) < 22) return false;
+  if (Math.hypot(wx - TOWN.npc[0], wy - TOWN.npc[1]) < 22) return false;
+  if (Math.hypot(wx - TOWN.portal[0], wy - TOWN.portal[1]) < 28) return false;
+
+  return true;
+};
+
 interface FloatingText {
   id: number;
   text: string;
@@ -318,14 +334,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         isMoving = true;
         const moveStep = sim.speed * dt;
         if (moveStep >= dist) {
-          // Snap precisely at destination to eliminate jitter and stop instantly
-          sim.x = sim.targetX;
-          sim.y = sim.targetY;
+          if (zoneType !== "town" || isWalkableTown(sim.targetX, sim.targetY)) {
+            sim.x = sim.targetX;
+            sim.y = sim.targetY;
+          }
           isMoving = false;
         } else {
-          // Move along normalized unit vector at constant velocity
-          sim.x += (dx / dist) * moveStep;
-          sim.y += (dy / dist) * moveStep;
+          const nextX = sim.x + (dx / dist) * moveStep;
+          const nextY = sim.y + (dy / dist) * moveStep;
+          if (zoneType !== "town" || isWalkableTown(nextX, nextY)) {
+            sim.x = nextX;
+            sim.y = nextY;
+          } else {
+            // Hit invisible collision boundary - stop smoothly
+            sim.targetX = sim.x;
+            sim.targetY = sim.y;
+            isMoving = false;
+          }
         }
 
         // Calculate isometric screen direction vector and map to 8-directional spritesheet row
@@ -434,18 +459,32 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.restore();
       }
 
-      // Warm ground light radiating from Campfire onto the stone floor
+      // Warm ground light radiating from Campfire and heavy boundary darkness vignette
       if (zoneType === "town") {
         ctx.save();
         const fireGroundIso = worldToIso(...TOWN.fire);
-        const campGlowR = 230 + Math.sin(now / 90) * 10;
+        // 1. Soft warm campfire radiance pool illuminating cobblestone floor
+        const campGlowR = 260 + Math.sin(now / 90) * 8;
         const campGlow = ctx.createRadialGradient(fireGroundIso.x, fireGroundIso.y, 8, fireGroundIso.x, fireGroundIso.y, campGlowR);
-        campGlow.addColorStop(0, "rgba(255, 140, 30, 0.22)");
-        campGlow.addColorStop(0.55, "rgba(220, 80, 15, 0.08)");
+        campGlow.addColorStop(0, "rgba(255, 140, 30, 0.28)");
+        campGlow.addColorStop(0.4, "rgba(230, 95, 15, 0.12)");
+        campGlow.addColorStop(0.75, "rgba(180, 50, 5, 0.03)");
         campGlow.addColorStop(1, "transparent");
         ctx.fillStyle = campGlow;
         ctx.beginPath();
         ctx.ellipse(fireGroundIso.x, fireGroundIso.y, campGlowR * 1.5, campGlowR * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Heavy Town Edge Darkness Vignette fading gracefully into pure pitch black
+        const vRadius = 240;
+        const townVignette = ctx.createRadialGradient(fireGroundIso.x, fireGroundIso.y, 160, fireGroundIso.x, fireGroundIso.y, vRadius);
+        townVignette.addColorStop(0, "rgba(0, 0, 0, 0.0)");
+        townVignette.addColorStop(0.55, "rgba(0, 0, 0, 0.45)");
+        townVignette.addColorStop(0.88, "rgba(0, 0, 0, 0.92)");
+        townVignette.addColorStop(1, "rgba(0, 0, 0, 1.0)");
+        ctx.fillStyle = townVignette;
+        ctx.beginPath();
+        ctx.ellipse(fireGroundIso.x, fireGroundIso.y, vRadius * 1.7, vRadius * 0.85, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
@@ -461,482 +500,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // Secondary light sources to feed into the pitch black lighting mask
       const secondaryLights: LightSource[] = [];
 
-      // A. TOWN HUB INTERACTIVE OBJECTS (LIONEYE'S WATCH)
+      // A. TOWN HUB INTERACTIVE OBJECTS (LIONEYE'S WATCH) - SPRITE ASSETS ONLY
       if (zoneType === "town") {
-        // 1. ISOMETRIC NATURAL & STRUCTURAL OBSTACLES (REPLACES FLAT SPIKE FENCES)
-        interface RuinedObstacle {
-          wx: number;
-          wy: number;
-          w: number;
-          h: number;
-          type: "ruin_wall" | "cliff_rock" | "gate_bastion" | "timber_barricade";
-          rubbleCount?: number;
-        }
-
-        const townObstacles: RuinedObstacle[] = [
-          // NORTH RAMPARTS (Ancient Karui Bastion Ruins - Back Boundary)
-          { wx: 235, wy: 210, w: 80, h: 52, type: "ruin_wall", rubbleCount: 3 },
-          { wx: 335, wy: 205, w: 90, h: 62, type: "ruin_wall", rubbleCount: 4 },
-          { wx: 450, wy: 200, w: 95, h: 68, type: "cliff_rock", rubbleCount: 2 },
-          { wx: 575, wy: 205, w: 85, h: 56, type: "ruin_wall", rubbleCount: 3 },
-          { wx: 680, wy: 215, w: 80, h: 50, type: "ruin_wall", rubbleCount: 2 },
-
-          // WEST BORDER (Jagged Coastal Crags & Heavy Timber-Stone Barricades)
-          { wx: 210, wy: 310, w: 75, h: 60, type: "cliff_rock", rubbleCount: 3 },
-          { wx: 215, wy: 410, w: 80, h: 48, type: "timber_barricade", rubbleCount: 2 },
-          { wx: 205, wy: 515, w: 85, h: 58, type: "cliff_rock", rubbleCount: 4 },
-          { wx: 220, wy: 600, w: 70, h: 46, type: "ruin_wall", rubbleCount: 2 },
-
-          // EAST BORDER (Ancient Fortress Masonry & Karui Stone Bastions)
-          { wx: 745, wy: 295, w: 85, h: 64, type: "ruin_wall", rubbleCount: 3 },
-          { wx: 755, wy: 415, w: 75, h: 70, type: "gate_bastion", rubbleCount: 2 },
-          { wx: 740, wy: 530, w: 80, h: 54, type: "ruin_wall", rubbleCount: 3 },
-
-          // SOUTH BORDER (The Watch Gate Bastions flanking the open approach)
-          { wx: 290, wy: 635, w: 75, h: 46, type: "timber_barricade", rubbleCount: 2 },
-          { wx: 390, wy: 640, w: 60, h: 65, type: "gate_bastion", rubbleCount: 3 },
-          { wx: 560, wy: 640, w: 60, h: 65, type: "gate_bastion", rubbleCount: 3 },
-          { wx: 670, wy: 635, w: 75, h: 46, type: "timber_barricade", rubbleCount: 2 }
-        ];
-
-        townObstacles.forEach((obs) => {
-          const oIso = worldToIso(obs.wx, obs.wy);
-          depthEntities.push({
-            depth: oIso.y,
-            render: (c) => {
-              c.save();
-              const hw = obs.w / 2;
-              const h = obs.h;
-
-              // Heavy contact occlusion base shadow and directional cast shadow
-              propShadow(c, oIso.x, oIso.y, obs.w * 1.1, h * 0.9);
-
-              if (obs.type === "cliff_rock") {
-                // Natural Dark Granite / Coastal Cliff Rock Face
-                c.fillStyle = "#3e3b37";
-                c.beginPath();
-                c.moveTo(oIso.x - hw * 0.7, oIso.y - h);
-                c.lineTo(oIso.x, oIso.y - h * 1.15);
-                c.lineTo(oIso.x + hw * 0.8, oIso.y - h * 0.9);
-                c.lineTo(oIso.x + hw * 0.3, oIso.y - h * 0.65);
-                c.lineTo(oIso.x - hw * 0.4, oIso.y - h * 0.7);
-                c.closePath();
-                c.fill();
-
-                // Front left face (ambient light)
-                c.fillStyle = "#2d2a27";
-                c.beginPath();
-                c.moveTo(oIso.x - hw * 0.7, oIso.y - h);
-                c.lineTo(oIso.x - hw * 0.4, oIso.y - h * 0.7);
-                c.lineTo(oIso.x + hw * 0.1, oIso.y - h * 0.55);
-                c.lineTo(oIso.x - hw * 0.2, oIso.y + 4);
-                c.lineTo(oIso.x - hw, oIso.y);
-                c.closePath();
-                c.fill();
-
-                // Front right face (deep crag shadow)
-                c.fillStyle = "#1b1917";
-                c.beginPath();
-                c.moveTo(oIso.x - hw * 0.4, oIso.y - h * 0.7);
-                c.lineTo(oIso.x + hw * 0.8, oIso.y - h * 0.9);
-                c.lineTo(oIso.x + hw, oIso.y + 2);
-                c.lineTo(oIso.x - hw * 0.2, oIso.y + 4);
-                c.closePath();
-                c.fill();
-
-                // Strata fracture lines
-                c.strokeStyle = "rgba(10, 8, 7, 0.75)";
-                c.lineWidth = 1.6;
-                c.beginPath();
-                c.moveTo(oIso.x - hw * 0.3, oIso.y - h * 0.85);
-                c.lineTo(oIso.x + hw * 0.2, oIso.y - h * 0.45);
-                c.lineTo(oIso.x - hw * 0.1, oIso.y);
-                c.stroke();
-              } else if (obs.type === "gate_bastion") {
-                // Towering Ancient Cut-Stone Bastion Pillar
-                const pw = obs.w * 0.45;
-                c.fillStyle = "#46423c";
-                c.beginPath();
-                c.moveTo(oIso.x, oIso.y - h);
-                c.lineTo(oIso.x + pw, oIso.y - h + pw * 0.45);
-                c.lineTo(oIso.x, oIso.y - h + pw * 0.9);
-                c.lineTo(oIso.x - pw, oIso.y - h + pw * 0.45);
-                c.closePath();
-                c.fill();
-
-                c.fillStyle = "#322e2a";
-                c.beginPath();
-                c.moveTo(oIso.x - pw, oIso.y - h + pw * 0.45);
-                c.lineTo(oIso.x, oIso.y - h + pw * 0.9);
-                c.lineTo(oIso.x, oIso.y);
-                c.lineTo(oIso.x - pw, oIso.y - pw * 0.45);
-                c.closePath();
-                c.fill();
-
-                c.fillStyle = "#1e1b18";
-                c.beginPath();
-                c.moveTo(oIso.x, oIso.y - h + pw * 0.9);
-                c.lineTo(oIso.x + pw, oIso.y - h + pw * 0.45);
-                c.lineTo(oIso.x + pw, oIso.y - pw * 0.45);
-                c.lineTo(oIso.x, oIso.y);
-                c.closePath();
-                c.fill();
-
-                // Ashlar brick courses
-                c.strokeStyle = "rgba(12, 10, 8, 0.65)";
-                c.lineWidth = 1.1;
-                for (let step = 1; step <= 4; step++) {
-                  const ly = oIso.y - (h / 5) * step;
-                  c.beginPath();
-                  c.moveTo(oIso.x - pw, ly - pw * 0.45);
-                  c.lineTo(oIso.x, ly);
-                  c.lineTo(oIso.x + pw, ly - pw * 0.45);
-                  c.stroke();
-                }
-              } else if (obs.type === "timber_barricade") {
-                // Weathered Heavy Cross-Beam Barricade with Stone Base
-                c.fillStyle = "#2c2824";
-                c.fillRect(oIso.x - hw * 0.7, oIso.y - 14, hw * 1.4, 14);
-                c.strokeStyle = "#171412";
-                c.lineWidth = 1.3;
-                c.strokeRect(oIso.x - hw * 0.7, oIso.y - 14, hw * 1.4, 14);
-
-                c.fillStyle = "#4a3523";
-                c.strokeStyle = "#25180f";
-                c.lineWidth = 1.5;
-                c.beginPath();
-                c.moveTo(oIso.x - hw * 0.6, oIso.y - 8);
-                c.lineTo(oIso.x + hw * 0.4, oIso.y - h);
-                c.lineTo(oIso.x + hw * 0.6, oIso.y - h + 8);
-                c.lineTo(oIso.x - hw * 0.4, oIso.y);
-                c.closePath();
-                c.fill();
-                c.stroke();
-
-                c.fillStyle = "#3b2a1c";
-                c.beginPath();
-                c.moveTo(oIso.x + hw * 0.6, oIso.y - 8);
-                c.lineTo(oIso.x - hw * 0.4, oIso.y - h);
-                c.lineTo(oIso.x - hw * 0.6, oIso.y - h + 8);
-                c.lineTo(oIso.x + hw * 0.4, oIso.y);
-                c.closePath();
-                c.fill();
-                c.stroke();
-              } else {
-                // Ruined Karui Ashlar Stone Wall with Crumbling Battlements
-                c.fillStyle = "#3c3832";
-                c.beginPath();
-                c.moveTo(oIso.x - hw, oIso.y - h * 0.85);
-                c.lineTo(oIso.x - hw * 0.4, oIso.y - h);
-                c.lineTo(oIso.x - hw * 0.1, oIso.y - h * 0.75);
-                c.lineTo(oIso.x + hw * 0.3, oIso.y - h * 0.95);
-                c.lineTo(oIso.x + hw, oIso.y - h * 0.7);
-                c.lineTo(oIso.x + hw, oIso.y + 2);
-                c.lineTo(oIso.x - hw, oIso.y);
-                c.closePath();
-                c.fill();
-
-                c.strokeStyle = "rgba(10, 8, 7, 0.7)";
-                c.lineWidth = 1.3;
-                for (let k = 1; k <= 3; k++) {
-                  const yk = oIso.y - (h / 4) * k;
-                  c.beginPath();
-                  c.moveTo(oIso.x - hw * (1 - k * 0.08), yk);
-                  c.lineTo(oIso.x + hw * (1 - k * 0.08), yk + 3);
-                  c.stroke();
-                }
-              }
-
-              // Fallen masonry chunks & rubble at base
-              c.fillStyle = "#26231f";
-              c.strokeStyle = "#110f0d";
-              c.lineWidth = 1;
-              const count = obs.rubbleCount || 2;
-              for (let r = 0; r < count; r++) {
-                const rx = oIso.x + (r % 2 === 0 ? -1 : 1) * (14 + r * 11);
-                const ry = oIso.y + (r * 3) - 2;
-                c.fillRect(rx - 5, ry - 6, 10, 7);
-                c.strokeRect(rx - 5, ry - 6, 10, 7);
-              }
-
-              c.restore();
-            }
-          });
-        });
-
-        // 2. Weathered Canvas Pavilion / Traveler's Shelter at (280, 290)
-        // Authentic 2.5D Isometric Ridge Tent (No flat 2D triangles!)
-        const tentIso = worldToIso(280, 290);
-        depthEntities.push({
-          depth: tentIso.y + 12,
-          render: (c) => {
-            c.save();
-            propShadow(c, tentIso.x, tentIso.y, 110, 50);
-
-            // Left sloping canvas roof (illuminated by ambient light)
-            c.fillStyle = "#54493b";
-            c.beginPath();
-            c.moveTo(tentIso.x - 34, tentIso.y - 48);
-            c.lineTo(tentIso.x + 22, tentIso.y - 20);
-            c.lineTo(tentIso.x - 14, tentIso.y + 8);
-            c.lineTo(tentIso.x - 64, tentIso.y - 18);
-            c.closePath();
-            c.fill();
-            c.strokeStyle = "#2d261e";
-            c.lineWidth = 1.3;
-            c.stroke();
-
-            // Right sloping canvas roof (in shadow)
-            c.fillStyle = "#3a3227";
-            c.beginPath();
-            c.moveTo(tentIso.x - 34, tentIso.y - 48);
-            c.lineTo(tentIso.x + 22, tentIso.y - 20);
-            c.lineTo(tentIso.x + 58, tentIso.y - 3);
-            c.lineTo(tentIso.x + 4, tentIso.y - 32);
-            c.closePath();
-            c.fill();
-            c.stroke();
-
-            // Ridge pole seam highlight
-            c.strokeStyle = "#6f614f";
-            c.lineWidth = 1.6;
-            c.beginPath();
-            c.moveTo(tentIso.x - 34, tentIso.y - 48);
-            c.lineTo(tentIso.x + 22, tentIso.y - 20);
-            c.stroke();
-
-            // Front entrance opening (deep shaded interior)
-            c.fillStyle = "#120e0b";
-            c.beginPath();
-            c.moveTo(tentIso.x + 22, tentIso.y - 20);
-            c.lineTo(tentIso.x - 12, tentIso.y + 8);
-            c.lineTo(tentIso.x + 36, tentIso.y + 2);
-            c.closePath();
-            c.fill();
-
-            // Bedroll / supplies inside the shelter opening
-            c.fillStyle = "#7a6248";
-            c.beginPath();
-            c.ellipse(tentIso.x + 12, tentIso.y - 2, 10, 4, -0.3, 0, Math.PI * 2);
-            c.fill();
-
-            // Wooden support upright pole at front entrance
-            c.strokeStyle = "#2e1f13";
-            c.lineWidth = 3;
-            c.beginPath();
-            c.moveTo(tentIso.x + 22, tentIso.y - 20);
-            c.lineTo(tentIso.x + 22, tentIso.y + 6);
-            c.stroke();
-
-            // Guy ropes extending to iron ground stakes
-            c.strokeStyle = "rgba(160, 140, 110, 0.65)";
-            c.lineWidth = 1;
-            c.beginPath();
-            c.moveTo(tentIso.x - 14, tentIso.y + 8);
-            c.lineTo(tentIso.x - 26, tentIso.y + 14);
-            c.moveTo(tentIso.x + 36, tentIso.y + 2);
-            c.lineTo(tentIso.x + 48, tentIso.y + 8);
-            c.moveTo(tentIso.x + 22, tentIso.y - 20);
-            c.lineTo(tentIso.x + 38, tentIso.y + 16);
-            c.stroke();
-
-            // Iron stakes in cobblestones
-            c.fillStyle = "#1a1a1a";
-            c.fillRect(tentIso.x - 27, tentIso.y + 13, 3, 4);
-            c.fillRect(tentIso.x + 47, tentIso.y + 7, 3, 4);
-            c.fillRect(tentIso.x + 37, tentIso.y + 15, 3, 4);
-
-            c.restore();
-          }
-        });
-
-        // 3. Forged-Iron Perimeter Watch Braziers with Ambient Flickering Flame
-        const campBraziers = [
-          { wx: 235, wy: 235 }, // NW
-          { wx: 710, wy: 235 }, // NE
-          { wx: 230, wy: 510 }, // W coastal
-          { wx: 720, wy: 510 }, // E fortress
-          { wx: 490, wy: 630 }  // S gate approach
-        ];
-        campBraziers.forEach((br, bIdx) => {
-          const bIso = worldToIso(br.wx, br.wy);
-          depthEntities.push({
-            depth: bIso.y,
-            render: (c) => {
-              c.save();
-              propShadow(c, bIso.x, bIso.y, 22, 52);
-
-              // Cut-Stone Plinth Base
-              c.fillStyle = "#34302a";
-              c.fillRect(bIso.x - 10, bIso.y - 8, 20, 8);
-              c.strokeStyle = "#1b1814";
-              c.lineWidth = 1.2;
-              c.strokeRect(bIso.x - 10, bIso.y - 8, 20, 8);
-
-              // Forged Wrought-Iron Stand & Basket
-              c.strokeStyle = "#1f1b17";
-              c.lineWidth = 3.5;
-              c.beginPath();
-              c.moveTo(bIso.x, bIso.y - 8);
-              c.lineTo(bIso.x, bIso.y - 38);
-              c.stroke();
-
-              // Iron Basket Rim
-              c.fillStyle = "#2c2621";
-              c.beginPath();
-              c.moveTo(bIso.x - 12, bIso.y - 38);
-              c.lineTo(bIso.x + 12, bIso.y - 38);
-              c.lineTo(bIso.x + 7, bIso.y - 48);
-              c.lineTo(bIso.x - 7, bIso.y - 48);
-              c.closePath();
-              c.fill();
-              c.stroke();
-
-              // Glowing Coal Core
-              c.fillStyle = "#e65100";
-              c.fillRect(bIso.x - 6, bIso.y - 46, 12, 6);
-
-              // Dynamic Flickering Multi-Stage Flame
-              const flicker = Math.sin((now + bIdx * 230) / 70) * 3;
-              const flameHeight = 16 + flicker;
-              const flameGrad = c.createRadialGradient(bIso.x, bIso.y - 48, 1, bIso.x, bIso.y - 50, 16);
-              flameGrad.addColorStop(0, "#ffffff");
-              flameGrad.addColorStop(0.25, "#f39c12");
-              flameGrad.addColorStop(0.75, "#d35400");
-              flameGrad.addColorStop(1, "transparent");
-
-              c.fillStyle = flameGrad;
-              c.beginPath();
-              c.ellipse(bIso.x + flicker * 0.25, bIso.y - 50, 6, flameHeight, 0, 0, Math.PI * 2);
-              c.fill();
-
-              // Crackling Embers floating upward
-              const emberY = bIso.y - 54 - ((now * 0.04 + bIdx * 20) % 18);
-              c.fillStyle = "#f1c40f";
-              c.fillRect(bIso.x + Math.sin(now / 85 + bIdx) * 4, emberY, 1.8, 1.8);
-              c.restore();
-            }
-          });
-
-          secondaryLights.push(
-            toScreenLight(bIso.x, bIso.y - 25, 190 + Math.sin((now + bIdx * 140) / 75) * 12, "255, 140, 45")
-          );
-        });
-
-        // 4. Organic Props & Weathered Clustered Debris (No grid alignment!)
-        const organicProps: {
-          wx: number;
-          wy: number;
-          type: "crate" | "barrel" | "stone_rubble";
-          scale?: number;
-          rot?: number;
-        }[] = [
-          // Cluster 1: Quartermaster Nook near Stash (wx: 350, wy: 470)
-          { wx: 315, wy: 450, type: "crate", scale: 1.25, rot: 5 },
-          { wx: 328, wy: 490, type: "crate", scale: 0.9, rot: -8 },
-          { wx: 295, wy: 472, type: "barrel", scale: 1.1 },
-          { wx: 308, wy: 512, type: "barrel", scale: 0.95 },
-          // Cluster 2: Northern Ruin Debris & Fallen Masonry
-          { wx: 410, wy: 245, type: "stone_rubble", scale: 1.1 },
-          { wx: 435, wy: 252, type: "barrel", scale: 0.85 },
-          // Cluster 3: Eastern Gate & Wall Approach
-          { wx: 695, wy: 460, type: "barrel", scale: 1.05 },
-          { wx: 710, wy: 475, type: "crate", scale: 1.0, rot: 12 },
-          { wx: 685, wy: 540, type: "barrel", scale: 0.9 },
-          // Cluster 4: Southern Watch Gate flanking debris
-          { wx: 365, wy: 620, type: "barrel", scale: 1.0 },
-          { wx: 600, wy: 620, type: "crate", scale: 0.95, rot: -6 }
-        ];
-
-        organicProps.forEach((prop) => {
-          const pIso = worldToIso(prop.wx, prop.wy);
-          depthEntities.push({
-            depth: pIso.y,
-            render: (c) => {
-              c.save();
-              const s = prop.scale || 1.0;
-
-              if (prop.type === "barrel") {
-                propShadow(c, pIso.x, pIso.y, 22 * s, 26 * s);
-                const bw = 18 * s;
-                const bh = 24 * s;
-                c.fillStyle = "#4a3523";
-                c.beginPath();
-                c.ellipse(pIso.x, pIso.y - bh / 2, bw / 2, bh / 2, 0, 0, Math.PI * 2);
-                c.fill();
-                c.strokeStyle = "#23180f";
-                c.lineWidth = 1.3;
-                c.stroke();
-
-                c.fillStyle = "#1e1b18";
-                c.fillRect(pIso.x - bw / 2 + 1, pIso.y - bh * 0.75, bw - 2, 2.5);
-                c.fillRect(pIso.x - bw / 2 + 1, pIso.y - bh * 0.3, bw - 2, 2.5);
-
-                c.fillStyle = "#5c432d";
-                c.beginPath();
-                c.ellipse(pIso.x, pIso.y - bh + 2, bw * 0.42, bh * 0.16, 0, 0, Math.PI * 2);
-                c.fill();
-              } else if (prop.type === "crate") {
-                const cw = 22 * s;
-                const ch = 19 * s;
-                propShadow(c, pIso.x, pIso.y, cw * 1.1, ch * 1.1);
-
-                c.translate(pIso.x, pIso.y);
-                if (prop.rot) c.rotate((prop.rot * Math.PI) / 180);
-
-                c.fillStyle = "#453625";
-                c.fillRect(-cw / 2, -ch, cw, ch);
-                c.strokeStyle = "#271d13";
-                c.lineWidth = 1.3;
-                c.strokeRect(-cw / 2, -ch, cw, ch);
-
-                c.fillStyle = "#1c1c1c";
-                const brace = 4;
-                c.fillRect(-cw / 2, -ch, brace, brace);
-                c.fillRect(cw / 2 - brace, -ch, brace, brace);
-                c.fillRect(-cw / 2, -brace, brace, brace);
-                c.fillRect(cw / 2 - brace, -brace, brace, brace);
-
-                c.strokeStyle = "#2a1f14";
-                c.lineWidth = 1.1;
-                c.beginPath();
-                c.moveTo(-cw / 2 + 3, -ch + 3);
-                c.lineTo(cw / 2 - 3, -3);
-                c.stroke();
-              } else {
-                propShadow(c, pIso.x, pIso.y, 24 * s, 16 * s);
-                c.fillStyle = "#3a3630";
-                c.fillRect(pIso.x - 11 * s, pIso.y - 12 * s, 22 * s, 12 * s);
-                c.strokeStyle = "#1b1916";
-                c.lineWidth = 1.2;
-                c.strokeRect(pIso.x - 11 * s, pIso.y - 12 * s, 22 * s, 12 * s);
-              }
-              c.restore();
-            }
-          });
-        });
-
-        // 5. Ambient villagers & gate guards
-        [
-          { p: [430, 395], dir: "down_right", s: 0.42, villager: true },
-          { p: [545, 450], dir: "up_left", s: 0.44, villager: true },
-          { p: [420, 620], dir: "up", s: 0.48, villager: false },
-          { p: [540, 620], dir: "up", s: 0.48, villager: false }
-        ].forEach((f) => {
-          const iso = worldToIso(f.p[0], f.p[1]);
-          depthEntities.push({
-            depth: iso.y,
-            render: (c) => {
-              c.save();
-              propShadow(c, iso.x, iso.y, 30, 42);
-              if (f.villager) c.filter = "sepia(0.7) brightness(0.75)";
-              isoSpriteRenderer.drawSprite(c, "knight", f.dir, iso.x, iso.y, f.s);
-              c.restore();
-            }
-          });
-        });
-
-        // 6. Waypoint (Towering Karui Obelisk) situated at (380, 320)
+        // 1. Waypoint (Towering Karui Obelisk) situated at (380, 320)
         const wpIso = worldToIso(...TOWN.waypoint);
         depthEntities.push({
           depth: wpIso.y,
@@ -1534,28 +1100,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // In town, prevent walking into the unpassable pitch-black void beyond the camp
+    // 4. Responsive Click-to-Move with Invisible Boundary Clamping in Town
+    let targetX = worldX;
+    let targetY = worldY;
     if (zoneType === "town") {
-      const distFromCamp = Math.hypot(worldX - 480, worldY - 420);
-      if (distFromCamp > 325) {
-        return;
+      const dist = Math.hypot(worldX - TOWN.fire[0], worldY - TOWN.fire[1]);
+      const maxRadius = 235;
+      if (dist > maxRadius) {
+        targetX = TOWN.fire[0] + ((worldX - TOWN.fire[0]) / dist) * maxRadius;
+        targetY = TOWN.fire[1] + ((worldY - TOWN.fire[1]) / dist) * maxRadius;
       }
     }
 
-    // 4. Responsive Click-to-Move
-    localPlayerSimRef.current.targetX = worldX;
-    localPlayerSimRef.current.targetY = worldY;
+    localPlayerSimRef.current.targetX = targetX;
+    localPlayerSimRef.current.targetY = targetY;
 
     ripplesRef.current.push({
-      x: worldX,
-      y: worldY,
+      x: targetX,
+      y: targetY,
       radius: 6,
       alpha: 1.0
     });
 
     if (room) {
       try {
-        room.send("move", { x: Math.round(worldX), y: Math.round(worldY) });
+        room.send("move", { x: Math.round(targetX), y: Math.round(targetY) });
       } catch (err) {
         console.warn("Could not dispatch move to server:", err);
       }

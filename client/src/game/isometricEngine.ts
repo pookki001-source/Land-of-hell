@@ -379,9 +379,9 @@ export function drawIsometricTilemap(
         if (zoneType === "town") {
           const tileWorld = isoToWorld(tileIsoX, tileIsoY);
           const distFromCamp = Math.hypot(tileWorld.x - 480, tileWorld.y - 420);
-          if (distFromCamp > 240) {
-            const darkFactor = Math.min(1, (distFromCamp - 240) / 130);
-            ctx.fillStyle = `rgba(0, 0, 0, ${darkFactor * 0.96})`;
+          if (distFromCamp > 200) {
+            const darkFactor = Math.min(1, (distFromCamp - 200) / 55);
+            ctx.fillStyle = `rgba(0, 0, 0, ${darkFactor * 0.99})`;
             ctx.fill();
           }
         }
@@ -534,7 +534,7 @@ export function applyDiablo2PitchBlackLighting(
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Respect high-DPI scaling
   ctx.globalCompositeOperation = "source-over";
-  ctx.globalAlpha = zoneType === "town" ? 0.90 : 1.0;
+  ctx.globalAlpha = zoneType === "town" ? 0.95 : 1.0;
   ctx.drawImage(mask, 0, 0);
 
   // Cool moonlit night ambience so firelight reads as warm against it
