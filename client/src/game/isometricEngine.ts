@@ -374,30 +374,45 @@ export function drawIsometricTilemap(
           ctx.fillStyle = isAlt ? "rgba(5, 5, 8, 0.68)" : "rgba(14, 12, 18, 0.58)";
         }
         ctx.fill();
+
+        // Atmospheric boundary fade for town: outer edges fade gracefully into pitch black
+        if (zoneType === "town") {
+          const tileWorld = isoToWorld(tileIsoX, tileIsoY);
+          const distFromCamp = Math.hypot(tileWorld.x - 480, tileWorld.y - 420);
+          if (distFromCamp > 240) {
+            const darkFactor = Math.min(1, (distFromCamp - 240) / 130);
+            ctx.fillStyle = `rgba(0, 0, 0, ${darkFactor * 0.96})`;
+            ctx.fill();
+          }
+        }
         ctx.restore();
 
-        // Deep dark recessed grout seam
-        ctx.strokeStyle = zoneType === "town" ? "rgba(8, 6, 5, 0.55)" : "rgba(4, 3, 5, 0.7)";
-        ctx.lineWidth = 1.3;
-        ctx.stroke();
+        // Grout seams only in wilderness maps; town stones blend naturally without rigid grid strokes
+        if (zoneType !== "town") {
+          ctx.strokeStyle = "rgba(4, 3, 5, 0.7)";
+          ctx.lineWidth = 1.3;
+          ctx.stroke();
 
-        // Subtle stone top-edge bevel highlight
-        ctx.beginPath();
-        ctx.moveTo(screenX - hw, screenY);
-        ctx.lineTo(screenX, screenY - hh);
-        ctx.lineTo(screenX + hw, screenY);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.055)";
-        ctx.lineWidth = 1.0;
-        ctx.stroke();
+          // Stone top-edge bevel highlight
+          ctx.beginPath();
+          ctx.moveTo(screenX - hw, screenY);
+          ctx.lineTo(screenX, screenY - hh);
+          ctx.lineTo(screenX + hw, screenY);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.055)";
+          ctx.lineWidth = 1.0;
+          ctx.stroke();
+        }
       } else {
         // Fallback fill if texture is loading
         let fill = isAlt ? "#191614" : "#211d19";
         if (zoneType !== "town") fill = isAlt ? "#121013" : "#171418";
         ctx.fillStyle = fill;
         ctx.fill();
-        ctx.strokeStyle = "#0b0908";
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
+        if (zoneType !== "town") {
+          ctx.strokeStyle = "#0b0908";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
       }
 
       ctx.restore();
@@ -473,7 +488,7 @@ export function applyDiablo2PitchBlackLighting(
     Math.sin(now / 115) * 8 +
     Math.cos(now / 68) * 5 +
     Math.sin(now / 24) * 3;
-  const playerRadius = (zoneType === "town" ? 440 : 380) + torchFlicker;
+  const playerRadius = (zoneType === "town" ? 260 : 380) + torchFlicker;
 
   const playerLightGrad = mctx.createRadialGradient(
     playerScreenX,
@@ -519,7 +534,7 @@ export function applyDiablo2PitchBlackLighting(
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Respect high-DPI scaling
   ctx.globalCompositeOperation = "source-over";
-  ctx.globalAlpha = zoneType === "town" ? 0.82 : 1.0;
+  ctx.globalAlpha = zoneType === "town" ? 0.90 : 1.0;
   ctx.drawImage(mask, 0, 0);
 
   // Cool moonlit night ambience so firelight reads as warm against it
